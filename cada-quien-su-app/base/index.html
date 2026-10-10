@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hábitos</title>
+<style>
+  :root { --bg:#f7f7f5; --card:#fff; --ink:#16171a; --muted:#7a7d84; --line:#e6e5e1; --done:#16171a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .app { max-width:420px; margin:0 auto; padding:28px 20px 40px; }
+  header h1 { font-size:26px; letter-spacing:-.02em; margin:0; }
+  header p { margin:4px 0 22px; color:var(--muted); font-size:13px; }
+  .habit { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .name { font-weight:600; }
+  .streak { color:var(--muted); font-size:12px; }
+  .week { display:flex; gap:6px; margin-top:10px; }
+  .day { flex:1; text-align:center; }
+  .day small { display:block; font-size:10px; color:var(--muted); margin-bottom:3px; }
+  .dot { width:100%; aspect-ratio:1; max-width:34px; border-radius:50%; border:1.5px solid var(--line); background:transparent; cursor:pointer; }
+  .dot.on { background:var(--done); border-color:var(--done); }
+  .del { border:0; background:none; color:var(--muted); font-size:18px; cursor:pointer; }
+  form { display:flex; gap:8px; margin-top:16px; }
+  input { flex:1; padding:11px 12px; border:1px solid var(--line); border-radius:10px; font:inherit; background:var(--card); }
+  button.add { padding:0 16px; border:0; border-radius:10px; background:var(--ink); color:#fff; font:inherit; font-weight:600; }
+  .summary { margin-top:22px; color:var(--muted); font-size:13px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Hábitos</h1>
+    <p id="today"></p>
+  </header>
+  <div id="list"></div>
+  <form id="add">
+    <input id="newHabit" placeholder="Nuevo hábito" maxlength="40">
+    <button class="add">Agregar</button>
+  </form>
+  <div class="summary" id="summary"></div>
+</div>
+<script>
+  const DAYS = ["L","M","M","J","V","S","D"];
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem("habits")); } catch { return null; } },
+    set(v) { try { localStorage.setItem("habits", JSON.stringify(v)); } catch {} }
+  };
+  let habits = store.get() || [
+    { name: "Tomar agua", week: [1,1,0,1,0,0,0] },
+    { name: "Leer 20 minutos", week: [1,0,1,1,0,0,0] },
+    { name: "Caminar al aire libre", week: [0,1,1,0,0,0,0] }
+  ];
+
+  function streak(week) {
+    let s = 0;
+    for (let i = week.length - 1; i >= 0; i--) { if (week[i]) s++; else if (s) break; }
+    return s;
+  }
+
+  function render() {
+    document.getElementById("today").textContent =
+      new Date().toLocaleDateString("es-MX", { weekday:"long", month:"long", day:"numeric" });
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+    habits.forEach((h, hi) => {
+      const el = document.createElement("div");
+      el.className = "habit";
+      el.innerHTML = `
+        <div class="row">
+          <span class="name"></span>
+          <span><span class="streak">${h.week.filter(Boolean).length}/7 · racha ${streak(h.week)}</span>
+          <button class="del" title="Quitar">×</button></span>
+        </div>
+        <div class="week">${h.week.map((on, di) =>
+          `<div class="day"><small>${DAYS[di]}</small><button class="dot ${on ? "on" : ""}" data-d="${di}"></button></div>`).join("")}
+        </div>`;
+      el.querySelector(".name").textContent = h.name;
+      el.querySelectorAll(".dot").forEach(b => b.onclick = () => {
+        h.week[b.dataset.d] = h.week[b.dataset.d] ? 0 : 1; save();
+      });
+      el.querySelector(".del").onclick = () => { habits.splice(hi, 1); save(); };
+      list.appendChild(el);
+    });
+    const done = habits.reduce((n, h) => n + h.week.filter(Boolean).length, 0);
+    const total = habits.length * 7;
+    document.getElementById("summary").textContent =
+      total ? `${done} de ${total} registros esta semana` : "Agrega tu primer hábito";
+  }
+
+  function save() { store.set(habits); render(); }
+
+  document.getElementById("add").onsubmit = e => {
+    e.preventDefault();
+    const input = document.getElementById("newHabit");
+    const name = input.value.trim();
+    if (!name) return;
+    habits.push({ name, week: [0,0,0,0,0,0,0] });
+    input.value = "";
+    save();
+  };
+
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cada quien su app · pantalla</title>
+<style>
+  @font-face { font-family:"Pixel"; src:url(/fuentes/press-start-2p.woff2) format("woff2"); }
+  @font-face { font-family:"Terminal"; src:url(/fuentes/vt323.woff2) format("woff2"); }
+  :root { --bg:#0d0b1e; --tile:#17142e; --line:#2e2856; --ink:#f4f1ff; --muted:#9a94c4; --green:#3dff6e; --yellow:#ffd23f; --pink:#ff4f9a; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  header { display:grid; grid-template-columns:auto 1fr auto; gap:28px; align-items:center; padding:22px 28px 18px; border-bottom:1px solid var(--line); }
+  .qr { background:#fff; padding:8px; border-radius:0; width:150px; height:150px; box-shadow:6px 6px 0 var(--pink); }
+  .qr img { width:100%; height:100%; display:block; }
+  h1 { font-family:"Pixel", monospace; font-size:30px; margin:0; line-height:1.3; color:var(--yellow); text-shadow:4px 4px 0 #000; }
+  .url { color:var(--muted); margin-top:8px; font:14px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .stats { display:flex; gap:28px; }
+  .stat b { display:block; font-family:"Pixel", monospace; font-size:30px; font-weight:400; color:var(--green); line-height:1.4; }
+  .stat span { color:var(--muted); font-family:"Terminal", monospace; font-size:20px; text-transform:uppercase; }
+  .controls { display:none; gap:8px; padding:12px 28px; border-bottom:1px solid var(--line); align-items:center; }
+  .controls.on { display:flex; }
+  .controls button { background:var(--tile); color:var(--ink); border:2px solid var(--line); border-radius:0; box-shadow:3px 3px 0 #000; padding:8px 14px; font:inherit; cursor:pointer; }
+  .controls button.primary { background:var(--yellow); color:#000; border-color:var(--yellow); font-weight:600; }
+  .controls .engine { margin-left:auto; color:var(--muted); font-size:13px; }
+  main { padding:20px 28px 40px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--tile-w, 210px), 1fr)); gap:16px; }
+  .tile { background:var(--tile); border:3px solid var(--line); border-radius:0; padding:8px; position:relative; box-shadow:6px 6px 0 #000; }
+  .tile.working { border-color:var(--green); animation:glow .6s steps(2) infinite; }
+  .tile.new { animation:pop .5s ease-out; }
+  @keyframes glow { 50% { border-color:var(--line); } }
+  @keyframes pop { from { transform:scale(.85); opacity:0; } }
+  .screen { width:100%; overflow:hidden; border-radius:0; background:#fff; position:relative; }
+  .screen iframe { width:390px; height:760px; border:0; transform-origin:0 0; pointer-events:none; display:block; }
+  .cap { padding:8px 4px 2px; }
+  .cap .n { font-family:"Terminal", monospace; font-size:22px; display:flex; justify-content:space-between; color:var(--yellow); }
+  .cap .n span { color:var(--muted); font-weight:400; font-size:12px; }
+  .cap .r { color:var(--muted); font-size:12px; margin-top:2px; height:32px; overflow:hidden; }
+  .cap .line { color:var(--green); font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hide { position:absolute; top:12px; right:12px; display:none; background:#000a; color:#fff; border:0; border-radius:6px; font-size:11px; padding:3px 6px; cursor:pointer; }
+  body.presenter .tile:hover .hide { display:block; }
+  .tile.hidden .screen { filter:blur(14px); }
+  .empty { color:var(--muted); font-size:22px; padding:80px 0; text-align:center; }
+
+  .overlay { position:fixed; inset:0; background:#0b0c0ef2; display:none; padding:48px 64px; overflow:auto; z-index:5; }
+  .overlay.on { display:block; }
+  .overlay h2 { font-family:"Pixel", monospace; font-size:28px; margin:0 0 14px; color:var(--yellow); line-height:1.4; }
+  .overlay .sub { color:var(--muted); margin-bottom:28px; font-size:17px; }
+  .theme { display:grid; grid-template-columns:56px 1fr auto; gap:18px; align-items:center; padding:16px 0; border-top:1px solid var(--line); }
+  .theme .c { font-family:"Pixel", monospace; font-size:26px; color:var(--green); }
+  .theme .t { font-size:22px; font-weight:600; }
+  .theme .ex { color:var(--muted); font-size:14px; margin-top:3px; }
+  .theme .bar { height:10px; background:var(--green); margin-top:8px; }
+  .theme button { background:var(--green); color:#000; border:0; border-radius:0; box-shadow:4px 4px 0 #000; font-family:"Pixel", monospace !important; font-size:11px !important; padding:10px 16px; font:inherit; font-weight:600; cursor:pointer; }
+  .insight { margin-top:26px; font-size:20px; color:var(--ink); max-width:900px; }
+  .close { position:absolute; top:20px; right:28px; background:none; border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:6px 12px; cursor:pointer; font:inherit; }
+  .mainview { display:grid; grid-template-columns:auto 1fr; gap:40px; align-items:start; }
+  .mainview .screen { width:390px; border-radius:18px; }
+  .mainview .screen iframe { transform:none; }
+  .merged { color:var(--muted); font-size:15px; margin-top:12px; }
+  .log { font:14px ui-monospace, Menlo, monospace; color:var(--muted); margin-top:18px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<header>
+  <div class="qr"><img id="qr" src="/qr.svg" alt="Código QR"></div>
+  <div>
+    <h1>Cada quien su app.</h1>
+    <div class="url" id="url"></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="sPeople">0</b><span>personas</span></div>
+    <div class="stat"><b id="sChanges">0</b><span>cambios en vivo</span></div>
+    <div class="stat"><b id="sWorking">0</b><span>agentes trabajando</span></div>
+    <div class="stat"><b id="sCost">$0.00</b><span>gastado</span></div>
+  </div>
+</header>
+<div class="controls" id="controls">
+  <button class="primary" id="bAnalyze">¿Qué pidió la gente?</button>
+  <button id="bMain">App principal</button>
+  <button id="bSize">Tamaño</button>
+  <button id="bReset">Reiniciar</button>
+  <span class="engine" id="engine"></span>
+</div>
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">Escanea el código QR para tener tu propia app.</div>
+</main>
+
+<div class="overlay" id="analysis">
+  <button class="close" data-close>Cerrar</button>
+  <h2 id="aTitle">Leyendo cada cambio…</h2>
+  <div class="sub" id="aSub"></div>
+  <div id="themes"></div>
+  <div class="insight" id="insight"></div>
+</div>
+
+<div class="overlay" id="mainOverlay">
+  <button class="close" data-close>Cerrar</button>
+  <div class="mainview">
+    <div class="screen"><iframe id="mainApp" sandbox="allow-scripts allow-forms" style="height:760px"></iframe></div>
+    <div>
+      <h2>La app principal</h2>
+      <div class="sub" id="mainSub">Lo que todos reciben por defecto.</div>
+      <div class="merged" id="merged"></div>
+      <div class="log" id="mainLog"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const key = new URLSearchParams(location.search).get("key") || "";
+const tiles = new Map();
+let analysis = null;
+const sizes = [170, 210, 260, 320];
+let sizeIdx = Number(localStorage.getItem("tileSize") || 1);
+
+function applySize() {
+  document.documentElement.style.setProperty("--tile-w", sizes[sizeIdx] + "px");
+  requestAnimationFrame(() => tiles.forEach(t => fit(t)));
+}
+
+function fit(t) {
+  const w = t.screen.clientWidth;
+  const s = w / 390;
+  t.iframe.style.transform = `scale(${s})`;
+  t.screen.style.height = (Math.min(760, 640) * s) + "px";
+}
+const ro = new ResizeObserver(entries => entries.forEach(e => { const t = [...tiles.values()].find(x => x.screen === e.target); if (t) fit(t); }));
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c])); }
+
+function upsert(f, opts = {}) {
+  let t = tiles.get(f.id);
+  if (!t) {
+    const el = document.createElement("div");
+    el.className = "tile" + (opts.joined ? " new" : "");
+    el.innerHTML = `<div class="screen"><iframe sandbox="allow-scripts" loading="lazy"></iframe></div>
+      <div class="cap"><div class="n"><span class="nm"></span><span class="v"></span></div><div class="r"></div><div class="line"></div></div>
+      <button class="hide">ocultar</button>`;
+    t = { el, screen: el.querySelector(".screen"), iframe: el.querySelector("iframe"), version: -1 };
+    el.querySelector(".hide").onclick = () => post("hide", { id: f.id });
+    $("grid").appendChild(el);
+    tiles.set(f.id, t);
+    ro.observe(t.screen);
+    fit(t);
+  }
+  t.el.querySelector(".nm").textContent = f.name;
+  t.el.querySelector(".v").textContent = f.changes ? `${f.changes} cambio${f.changes > 1 ? "s" : ""}` : "original";
+  t.el.querySelector(".r").textContent = f.lastRequest ? `“${f.lastRequest}”` : "";
+  if (f.status === "idle") t.el.querySelector(".line").textContent =
+    f.lastStatus === "failed" ? "sin cambio: " + f.lastSummary.replace(/^No funcionó: /, "") : f.lastStatus === "undone" ? "deshecho" : "";
+  else if (f.status === "queued") t.el.querySelector(".line").textContent = "esperando un agente";
+  t.el.classList.toggle("working", f.status !== "idle");
+  t.el.classList.toggle("hidden", f.hidden);
+  if (t.version !== f.version) { t.version = f.version; t.iframe.src = `/app/${f.id}?v=${f.version}`; }
+  $("empty").style.display = tiles.size ? "none" : "block";
+}
+
+function setStats(s) {
+  if (!s) return;
+  $("sPeople").textContent = s.people;
+  $("sChanges").textContent = s.changes;
+  $("sWorking").textContent = s.working + (s.queued ? ` +${s.queued}` : "");
+  $("sCost").textContent = "$" + s.cost.toFixed(2);
+  $("engine").textContent = s.engine + ` · presupuesto $${s.budget} USD`;
+}
+
+function showAnalysis(a, status) {
+  $("analysis").classList.add("on");
+  if (status === "working") { $("aTitle").textContent = "Leyendo cada cambio…"; $("aSub").textContent = ""; $("themes").innerHTML = ""; $("insight").textContent = ""; return; }
+  if (status === "failed") { $("aTitle").textContent = "No pude leer los cambios"; return; }
+  analysis = a;
+  $("aTitle").textContent = "Lo que pidió la gente";
+  $("aSub").textContent = `${a.total} cambios, agrupados por el agente en segundos. Investigación de usuarios medida por lo que la gente construyó, no por lo que dijo.`;
+  const max = Math.max(...a.themes.map(t => t.count));
+  $("themes").innerHTML = a.themes.map((t, i) => `
+    <div class="theme">
+      <div class="c">${t.count}</div>
+      <div><div class="t">${esc(t.title)}</div><div class="ex">${t.examples.slice(0, 3).map(e => "“" + esc(e) + "”").join(" · ")}</div>
+        <div class="bar" style="width:${Math.round(t.count / max * 100)}%"></div></div>
+      <div>${key ? `<button data-merge="${i}">Lanzar para todos</button>` : ""}</div>
+    </div>`).join("");
+  $("insight").textContent = a.insight || "";
+  $("themes").querySelectorAll("[data-merge]").forEach(b => b.onclick = () => {
+    $("analysis").classList.remove("on");
+    openMain(`Lanzando “${a.themes[b.dataset.merge].title}” para todos…`);
+    post("merge", { index: Number(b.dataset.merge) });
+  });
+}
+
+function openMain(line) {
+  $("mainOverlay").classList.add("on");
+  $("mainApp").src = "/app/main?t=" + Date.now();
+  $("mainLog").textContent = line || "";
+}
+
+async function post(action, body = {}) {
+  const r = await fetch(`/api/presenter/${action}?key=${encodeURIComponent(key)}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  return r.json();
+}
+
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".overlay").classList.remove("on"));
+document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".overlay").forEach(o => o.classList.remove("on")); });
+$("bAnalyze").onclick = () => { showAnalysis(null, "working"); post("analyze"); };
+$("bMain").onclick = () => openMain();
+$("bSize").onclick = () => { sizeIdx = (sizeIdx + 1) % sizes.length; localStorage.setItem("tileSize", sizeIdx); applySize(); };
+$("bReset").onclick = async () => { if (confirm("¿Borrar todas las apps y empezar de cero?")) await post("reset"); };
+
+async function load() {
+  const s = await (await fetch("/api/state?key=" + encodeURIComponent(key))).json();
+  if (s.presenter) { $("controls").classList.add("on"); document.body.classList.add("presenter"); }
+  $("url").textContent = s.joinUrl.replace(/^https?:\/\//, "");
+  s.forks.forEach(f => upsert(f));
+  setStats(s.stats);
+  $("merged").textContent = s.main.merged.length ? "Lanzado desde el público: " + s.main.merged.join(", ") : "";
+  applySize();
+
+  const es = new EventSource("/events?wall=1");
+  es.onmessage = e => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === "hello") { setStats(ev.stats); $("url").textContent = ev.joinUrl.replace(/^https?:\/\//, ""); $("qr").src = "/qr.svg?t=" + Date.now(); }
+    if (ev.type === "stats") setStats(ev.stats);
+    if (ev.type === "fork") upsert(ev.fork, { joined: ev.joined });
+    if (ev.type === "progress") {
+      if (ev.fork === "main") $("mainLog").textContent += "\n" + ev.line;
+      else { const t = tiles.get(ev.fork); if (t) t.el.querySelector(".line").textContent = ev.line; }
+    }
+    if (ev.type === "analysis") { showAnalysis(ev.analysis, ev.status); setStats(ev.stats); }
+    if (ev.type === "main") {
+      if (ev.status === "done") {
+        $("mainApp").src = "/app/main?t=" + Date.now();
+        $("mainLog").textContent += `\nLanzado: “${ev.title}”. Quien entre ahora empieza con esta versión.`;
+        fetch("/api/state").then(r => r.json()).then(s => { $("merged").textContent = "Lanzado desde el público: " + s.main.merged.join(", "); });
+      }
+      if (ev.status === "failed") $("mainLog").textContent += `\nNo funcionó: ${ev.error}`;
+      setStats(ev.stats);
+    }
+    if (ev.type === "reset") location.reload();
+  };
+}
+load();
+</script>
+</body>
+</html>

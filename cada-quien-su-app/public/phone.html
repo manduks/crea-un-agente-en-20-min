@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tu propia app</title>
+<style>
+  :root { --ink:#111214; --muted:#6f727a; --line:#e4e3df; --bg:#f4f4f1; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .join { max-width:420px; margin:0 auto; padding:56px 24px; }
+  .join h1 { font-size:30px; letter-spacing:-.03em; margin:0 0 10px; line-height:1.1; }
+  .join p { color:var(--muted); margin:0 0 26px; }
+  .join input { width:100%; padding:14px; font:inherit; font-size:17px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  .btn { display:block; width:100%; margin-top:12px; padding:14px; border:0; border-radius:12px; background:var(--ink); color:#fff; font:inherit; font-weight:600; font-size:16px; }
+  .btn:disabled { opacity:.45; }
+
+  .me { display:none; flex-direction:column; height:100%; }
+  .bar { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; font-size:13px; color:var(--muted); }
+  .bar b { color:var(--ink); }
+  .frame { flex:1; min-height:0; margin:0 10px; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#fff; position:relative; }
+  .frame iframe { width:100%; height:100%; border:0; display:block; }
+  .frame.busy::after { content:""; position:absolute; inset:0; border-radius:16px; box-shadow:inset 0 0 0 3px var(--ink); animation:pulse 1.2s ease-in-out infinite; pointer-events:none; }
+  @keyframes pulse { 50% { box-shadow:inset 0 0 0 3px transparent; } }
+  .dock { padding:10px 12px calc(12px + env(safe-area-inset-bottom)); }
+  .status { min-height:20px; font-size:13px; color:var(--muted); margin:0 4px 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chips { display:flex; gap:6px; overflow-x:auto; margin-bottom:8px; scrollbar-width:none; }
+  .chip { flex:none; padding:7px 11px; border:1px solid var(--line); border-radius:999px; background:#fff; font:inherit; font-size:13px; color:var(--ink); }
+  .ask { display:flex; gap:8px; }
+  .ask textarea { flex:1; resize:none; height:48px; padding:12px; border:1px solid var(--line); border-radius:12px; font:inherit; font-size:16px; background:#fff; }
+  .ask .btn { width:auto; margin:0; padding:0 18px; }
+  .undo { border:0; background:none; color:var(--muted); font:inherit; font-size:13px; text-decoration:underline; padding:0; }
+</style>
+</head>
+<body>
+
+<section class="join" id="join">
+  <h1>Cada quien su app.</h1>
+  <p>Vas a tener tu propia copia de una app pequeña. Dile al agente cómo cambiarla, con tus palabras. Él reescribe el código por ti, en vivo.</p>
+  <input id="name" placeholder="Tu nombre" maxlength="24" autocomplete="given-name">
+  <button class="btn" id="go">Quiero mi app</button>
+</section>
+
+<section class="me" id="me">
+  <div class="bar"><span>App de <b id="who"></b> · <span id="ver">v1</span></span><button class="undo" id="undo">Deshacer</button></div>
+  <div class="frame" id="frame"><iframe id="app" sandbox="allow-scripts allow-forms" title="Tu app"></iframe></div>
+  <div class="dock">
+    <div class="status" id="status">Prueba una de estas o escribe la tuya.</div>
+    <div class="chips" id="chips"></div>
+    <form class="ask" id="ask">
+      <textarea id="text" placeholder="Cambia esta app…" maxlength="240"></textarea>
+      <button class="btn" id="send">Enviar</button>
+    </form>
+  </div>
+</section>
+
+<script>
+const IDEAS = [
+  "Modo oscuro",
+  "Que se sienta como videojuego",
+  "Agrega un temporizador de 25 minutos",
+  "Pásala a inglés",
+  "Celebra cuando termine todos mis hábitos del día",
+  "Muestra mi semana como gráfica de barras",
+];
+const $ = id => document.getElementById(id);
+let forkId = (location.pathname.match(/^\/u\/([a-f0-9]+)/) || [])[1] || localStorage.getItem("forkId");
+let busy = false;
+
+async function api(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  return r.json();
+}
+
+$("go").onclick = async () => {
+  $("go").disabled = true;
+  const { id } = await api("/api/join", { name: $("name").value });
+  localStorage.setItem("forkId", id);
+  location.href = "/u/" + id;
+};
+$("name").onkeydown = e => { if (e.key === "Enter") $("go").click(); };
+
+function setBusy(b, line) {
+  busy = b;
+  $("frame").classList.toggle("busy", b);
+  $("send").disabled = b;
+  $("text").disabled = b;
+  if (line) $("status").textContent = line;
+}
+
+function reloadApp(version) {
+  $("app").src = `/app/${forkId}?v=${version}-${Date.now()}`;
+  $("ver").textContent = "v" + version;
+}
+
+async function start() {
+  const r = await fetch("/api/fork/" + forkId);
+  if (!r.ok) { localStorage.removeItem("forkId"); location.href = "/"; return; }
+  const { fork } = await r.json();
+  if (location.pathname === "/") history.replaceState(null, "", "/u/" + forkId);
+  $("join").style.display = "none";
+  $("me").style.display = "flex";
+  $("who").textContent = fork.name;
+  reloadApp(fork.version);
+  if (fork.status !== "idle") setBusy(true, "El agente está cambiando tu app…");
+
+  IDEAS.forEach(t => {
+    const c = document.createElement("button");
+    c.className = "chip"; c.type = "button"; c.textContent = t;
+    c.onclick = () => { $("text").value = t; $("text").focus(); };
+    $("chips").appendChild(c);
+  });
+
+  const es = new EventSource("/events?fork=" + forkId);
+  es.onmessage = e => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === "progress" && ev.fork === forkId) setBusy(true, ev.line + "…");
+    if (ev.type === "fork" && ev.fork.id === forkId) {
+      if (ev.fork.status === "queued") setBusy(true, "En la fila, el agente ya viene…");
+      if (ev.done) {
+        setBusy(false, ev.done.ok ? ev.done.summary : ev.done.summary);
+        reloadApp(ev.fork.version);
+      } else if (ev.fork.status === "idle") { setBusy(false); reloadApp(ev.fork.version); }
+    }
+    if (ev.type === "reset") { localStorage.removeItem("forkId"); location.href = "/"; }
+  };
+}
+
+$("ask").onsubmit = async e => {
+  e.preventDefault();
+  const text = $("text").value.trim();
+  if (!text || busy) return;
+  setBusy(true, "Enviando…");
+  const r = await api("/api/change", { id: forkId, text });
+  if (r.error) setBusy(false, r.error);
+  else { $("text").value = ""; setBusy(true, r.position > 0 ? "En la fila, el agente ya viene…" : "Pensando…"); }
+};
+$("text").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("ask").requestSubmit(); } };
+$("undo").onclick = async () => { if (busy) return; const r = await api("/api/undo", { id: forkId }); if (r.error) $("status").textContent = r.error; };
+
+if (forkId) start();
+</script>
+</body>
+</html>

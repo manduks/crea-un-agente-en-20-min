@@ -1,0 +1,19 @@
+{
+  "name": "cada-quien-su-app",
+  "version": "1.0.0",
+  "description": "Demo en vivo: cada persona del p\u00fablico tiene su propia copia de una app y un agente de c\u00f3digo que la reescribe.",
+  "scripts": {
+    "charla": "TUNNEL=1 node server.mjs",
+    "charla:local": "node server.mjs",
+    "charla:claude": "ENGINE=claude TUNNEL=1 node server.mjs",
+    "start": "node server.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^1.1.0",
+    "qrcode": "^1.5.4"
+  },
+  "private": true
+}
