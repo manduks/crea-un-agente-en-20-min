@@ -42,7 +42,7 @@ const cfg = {
   claudeBin: process.env.CLAUDE_BIN || "claude",
   claudeModel: process.env.CLAUDE_MODEL || "sonnet",
   maxParallel: Number(process.env.MAX_PARALLEL || 6),
-  maxChangesPerPerson: Number(process.env.MAX_CHANGES || 10),
+  maxChangesPerPerson: Number(process.env.MAX_CHANGES || 5),
   budgetUsd: Number(process.env.BUDGET_USD || 25),
   jobTimeoutMs: Number(process.env.JOB_TIMEOUT_S || 180) * 1000,
   key: process.env.PRESENTER_KEY || randomBytes(4).toString("hex"),
@@ -79,6 +79,7 @@ function publicFork(f) {
     lastRequest: last?.text || "", lastSummary: last?.summary || "", lastStatus: last?.status || "",
     lastSource: last?.source || "persona", progress: f.progress || "",
     changes: f.requests.filter(r => r.status === "done").length,
+    left: Math.max(0, cfg.maxChangesPerPerson - f.requests.filter(r => r.source !== "publico").length),
   };
 }
 
@@ -486,7 +487,7 @@ const server = http.createServer(async (req, res) => {
       if (!f) return send(res, 404, { error: "No encontramos tu app. Recarga la página." });
       if (!text) return send(res, 400, { error: "Escribe qué quieres cambiar." });
       if (f.status !== "idle") return send(res, 409, { error: "Tu app todavía se está cambiando." });
-      if (f.requests.filter(r => r.source !== "publico").length >= cfg.maxChangesPerPerson) return send(res, 429, { error: "Llegaste al límite de cambios. ¡Mira la pantalla!" });
+      if (f.requests.filter(r => r.source !== "publico").length >= cfg.maxChangesPerPerson) return send(res, 429, { error: `Ya usaste tus ${cfg.maxChangesPerPerson} cambios. ¡Mira la pantalla!` });
       if (state.totalCost >= cfg.budgetUsd) return send(res, 429, { error: "Se acabó el presupuesto del demo. ¡Mira la pantalla!" });
       enqueueChange(f, text);
       return send(res, 200, { ok: true, position: queue.length });

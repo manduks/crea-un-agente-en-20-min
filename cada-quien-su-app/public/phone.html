@@ -42,7 +42,7 @@
 </section>
 
 <section class="me" id="me">
-  <div class="bar"><span>App de <b id="who"></b> · <span id="ver">v1</span></span><button class="undo" id="undo">Deshacer</button></div>
+  <div class="bar"><span>App de <b id="who"></b> · <span id="ver">v1</span> · <span id="left"></span></span><button class="undo" id="undo">Deshacer</button></div>
   <div class="frame" id="frame"><iframe id="app" sandbox="allow-scripts allow-forms" title="Tu app"></iframe></div>
   <div class="dock">
     <div class="status" id="status">Prueba una de estas o escribe la tuya.</div>
@@ -65,7 +65,7 @@ const IDEAS = [
 ];
 const $ = id => document.getElementById(id);
 let forkId = (location.pathname.match(/^\/u\/([a-f0-9]+)/) || [])[1] || localStorage.getItem("forkId");
-let busy = false;
+let busy = false, noneLeft = false;
 
 async function api(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -83,8 +83,8 @@ $("name").onkeydown = e => { if (e.key === "Enter") $("go").click(); };
 function setBusy(b, line) {
   busy = b;
   $("frame").classList.toggle("busy", b);
-  $("send").disabled = b;
-  $("text").disabled = b;
+  $("send").disabled = b || noneLeft;
+  $("text").disabled = b || noneLeft;
   if (line) $("status").textContent = line;
 }
 
@@ -99,6 +99,9 @@ function reloadApp(v) {
 // by a poll every 2 s, because some networks (and the tunnel) buffer live events.
 function sync(fork) {
   if (fork.version !== version) reloadApp(fork.version);
+  $("left").textContent = fork.left === 0 ? "ya usaste tus cambios" : fork.left === 1 ? "te queda 1 cambio" : `te quedan ${fork.left} cambios`;
+  noneLeft = fork.left === 0;
+  if (noneLeft && fork.status === "idle") { $("send").disabled = $("text").disabled = true; $("text").placeholder = "Ya usaste tus 5 cambios"; }
   if (fork.status !== "idle") {
     const who = fork.lastSource === "publico" ? "Lo más pedido por el público llega a tu app. " : "";
     setBusy(true, who + (fork.progress || "Pensando") + "…");

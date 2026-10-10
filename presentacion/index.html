@@ -200,28 +200,28 @@
 <!-- 7 · your first agent -->
 <section class="slide" data-rung="1">
   <div class="kicker">NIVEL 1 · TU PRIMER AGENTE</div>
-  <div class="grid2">
+  <div class="grid2" style="grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr)">
     <div>
-      <h2>El ciclo completo cabe en una diapositiva</h2>
+      <h2>El ciclo cabe en una diapositiva</h2>
       <p>Archivo real del repo: <span class="c">agente-minimo/agente.mjs</span>. Sin dependencias.</p>
-      <p><b>En vivo:</b></p>
-      <div class="box" style="margin-top:1cqh"><pre><span class="ok">$</span> node agente.mjs <span class="st">"crea un reloj en reloj.html"</span></pre></div>
+      <p><b>¿Dónde valida?</b> Cada error regresa al modelo. Cuando dice que terminó, un <span class="y">juez externo</span> lo revisa.</p>
+      <div class="box" style="margin-top:1.4cqh"><pre style="white-space:pre-wrap"><span class="ok">$</span> VERIFICAR=<span class="st">"npm test"</span> node agente.mjs <span class="st">"arregla las pruebas"</span></pre></div>
     </div>
     <div class="box"><pre><span class="cm">// 3. El ciclo: esto es todo el "agente"</span>
-<span class="kw">const</span> mensajes = [{ role: <span class="st">"user"</span>, content: tarea }];
-<span class="kw">while</span> (<span class="kw">true</span>) {
+<span class="kw">for</span> (<span class="kw">let</span> paso = <span class="st">1</span>; paso <= MAX_PASOS; paso++) {
   <span class="kw">const</span> respuesta = <span class="kw">await</span> <span class="fn">modelo</span>(mensajes);
   mensajes.<span class="fn">push</span>(respuesta);
-  <span class="fn">mostrar</span>(respuesta);
 
   <span class="kw">const</span> llamadas = <span class="fn">herramientasPedidas</span>(respuesta);
-  <span class="kw">if</span> (llamadas.length === <span class="st">0</span>) <span class="kw">break</span>; <span class="cm">// terminó</span>
-
-  <span class="kw">const</span> resultados = [];
-  <span class="kw">for</span> (<span class="kw">const</span> llamada <span class="kw">of</span> llamadas) {
-    <span class="kw">const</span> salida = <span class="fn">ejecutar</span>(llamada);
-    resultados.<span class="fn">push</span>(<span class="fn">resultado</span>(llamada, salida));
+  <span class="kw">if</span> (llamadas.length === <span class="st">0</span>) { <span class="cm">// dice que terminó...</span>
+    <span class="kw">const</span> error = <span class="fn">verificar</span>(); <span class="cm">// ...un juez revisa</span>
+    <span class="kw">if</span> (!error) <span class="kw">break</span>; <span class="cm">// listo</span>
+    mensajes.<span class="fn">push</span>(<span class="fn">corrige</span>(error)); <span class="cm">// a corregir</span>
+    <span class="kw">continue</span>;
   }
+
+  <span class="kw">const</span> resultados = llamadas.<span class="fn">map</span>(llamada =>
+    <span class="fn">resultado</span>(llamada, <span class="fn">ejecutar</span>(llamada)));
   mensajes.<span class="fn">push</span>({ role: <span class="st">"user"</span>, content: resultados });
 }</pre></div>
   </div>

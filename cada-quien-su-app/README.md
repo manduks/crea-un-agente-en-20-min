@@ -47,7 +47,7 @@ La `key` es la clave del presentador (los botones de la pantalla). Cambia en cad
 | `PI_MODEL` | `anthropic/claude-sonnet-5-5` | p. ej. `anthropic/claude-haiku-5-5` (más rápido y barato) u `openai/…` con `OPENAI_API_KEY` |
 | `BUDGET_USD` | `25` | al llegar a este gasto ya no acepta cambios nuevos |
 | `MAX_PARALLEL` | `6` | agentes trabajando a la vez; el resto espera en fila |
-| `MAX_CHANGES` | `10` | cambios por persona |
+| `MAX_CHANGES` | `5` | cambios por persona (el celular muestra cuántos le quedan) |
 | `PRESENTER_KEY` | aleatoria | clave fija del presentador |
 | `PUBLIC_URL` | | si usas tu propio túnel (`ngrok http 4317`) |
 

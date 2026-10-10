@@ -61,6 +61,12 @@ node ~/Documents/code/demos/agente-minimo/agente.mjs "crea un reloj digital gran
 open reloj.html
 ```
 
+Para mostrar el juez externo (~30 s): el agente escribe "hola", el juez falla, el agente lee el error y lo corrige solo.
+
+```bash
+VERIFICAR="grep -q Oaxaca hola.txt" node ~/Documents/code/demos/agente-minimo/agente.mjs "crea hola.txt con la palabra hola"
+```
+
 **Nivel 2 · el agente se hace su herramienta** (~30 s):
 
 ```bash
