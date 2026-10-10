@@ -16,6 +16,16 @@ const tarea = process.argv.slice(2).join(" ") || "Crea hola.txt con un saludo y 
 const MAX_PASOS = Number(process.env.MAX_PASOS || 20); // límite: nunca se queda dando vueltas
 const VERIFICAR = process.env.VERIFICAR;               // juez externo opcional, p. ej. "npm test"
 
+// La API key: de la variable de entorno o, en macOS, del Llavero (elemento "pi-demo-anthropic").
+let API_KEY = process.env.ANTHROPIC_API_KEY;
+if (!API_KEY && process.platform === "darwin") {
+  try { API_KEY = execSync("security find-generic-password -s pi-demo-anthropic -w", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch {}
+}
+if (!API_KEY) {
+  console.error("Falta la API key: export ANTHROPIC_API_KEY=sk-ant-... (consíguela en console.anthropic.com)");
+  process.exit(1);
+}
+
 // 1. Las herramientas: lo que el agente puede hacer en el mundo.
 const herramientas = {
   leer_archivo: {
@@ -41,7 +51,7 @@ async function modelo(mensajes) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "x-api-key": API_KEY,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
