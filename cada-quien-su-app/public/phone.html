@@ -23,7 +23,7 @@
   .frame.busy::after { content:""; position:absolute; inset:0; border-radius:16px; box-shadow:inset 0 0 0 3px var(--ink); animation:pulse 1.2s ease-in-out infinite; pointer-events:none; }
   @keyframes pulse { 50% { box-shadow:inset 0 0 0 3px transparent; } }
   .dock { padding:10px 12px calc(12px + env(safe-area-inset-bottom)); }
-  .status { min-height:20px; font-size:13px; color:var(--muted); margin:0 4px 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .status { min-height:20px; font-size:14px; color:var(--ink); margin:0 4px 8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .chips { display:flex; gap:6px; overflow-x:auto; margin-bottom:8px; scrollbar-width:none; }
   .chip { flex:none; padding:7px 11px; border:1px solid var(--line); border-radius:999px; background:#fff; font:inherit; font-size:13px; color:var(--ink); }
   .ask { display:flex; gap:8px; }
@@ -88,9 +88,31 @@ function setBusy(b, line) {
   if (line) $("status").textContent = line;
 }
 
-function reloadApp(version) {
-  $("app").src = `/app/${forkId}?v=${version}-${Date.now()}`;
-  $("ver").textContent = "v" + version;
+let version = 0;
+function reloadApp(v) {
+  version = v;
+  $("app").src = `/app/${forkId}?v=${v}-${Date.now()}`;
+  $("ver").textContent = "v" + v;
+}
+
+// One function decides what the phone shows. It is fed by the live events AND
+// by a poll every 2 s, because some networks (and the tunnel) buffer live events.
+function sync(fork) {
+  if (fork.version !== version) reloadApp(fork.version);
+  if (fork.status !== "idle") {
+    const who = fork.lastSource === "publico" ? "Lo más pedido por el público llega a tu app. " : "";
+    setBusy(true, who + (fork.progress || "Pensando") + "…");
+  } else if (busy) {
+    setBusy(false, fork.lastSummary || "Listo.");
+  }
+}
+
+async function poll() {
+  try {
+    const r = await fetch("/api/fork/" + forkId, { cache: "no-store" });
+    if (r.status === 404) { localStorage.removeItem("forkId"); location.href = "/"; return; }
+    if (r.ok) sync((await r.json()).fork);
+  } catch {}
 }
 
 async function start() {
@@ -101,8 +123,7 @@ async function start() {
   $("join").style.display = "none";
   $("me").style.display = "flex";
   $("who").textContent = fork.name;
-  reloadApp(fork.version);
-  if (fork.status !== "idle") setBusy(true, "El agente está cambiando tu app…");
+  sync(fork);
 
   IDEAS.forEach(t => {
     const c = document.createElement("button");
@@ -115,15 +136,10 @@ async function start() {
   es.onmessage = e => {
     const ev = JSON.parse(e.data);
     if (ev.type === "progress" && ev.fork === forkId) setBusy(true, ev.line + "…");
-    if (ev.type === "fork" && ev.fork.id === forkId) {
-      if (ev.fork.status === "queued") setBusy(true, "En la fila, el agente ya viene…");
-      if (ev.done) {
-        setBusy(false, ev.done.ok ? ev.done.summary : ev.done.summary);
-        reloadApp(ev.fork.version);
-      } else if (ev.fork.status === "idle") { setBusy(false); reloadApp(ev.fork.version); }
-    }
+    if (ev.type === "fork" && ev.fork.id === forkId) sync(ev.fork);
     if (ev.type === "reset") { localStorage.removeItem("forkId"); location.href = "/"; }
   };
+  setInterval(poll, 2000);
 }
 
 $("ask").onsubmit = async e => {
@@ -133,10 +149,10 @@ $("ask").onsubmit = async e => {
   setBusy(true, "Enviando…");
   const r = await api("/api/change", { id: forkId, text });
   if (r.error) setBusy(false, r.error);
-  else { $("text").value = ""; setBusy(true, r.position > 0 ? "En la fila, el agente ya viene…" : "Pensando…"); }
+  else { $("text").value = ""; setBusy(true, r.position > 0 ? "En la fila, el agente ya viene…" : "Pensando…"); poll(); }
 };
 $("text").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("ask").requestSubmit(); } };
-$("undo").onclick = async () => { if (busy) return; const r = await api("/api/undo", { id: forkId }); if (r.error) $("status").textContent = r.error; };
+$("undo").onclick = async () => { if (busy) return; const r = await api("/api/undo", { id: forkId }); $("status").textContent = r.error || "Regresé tu app a la versión anterior."; poll(); };
 
 if (forkId) start();
 </script>

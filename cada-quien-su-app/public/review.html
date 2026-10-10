@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El público decide</title>
+<style>
+  @font-face { font-family:"Pixel"; src:url(/fuentes/press-start-2p.woff2) format("woff2"); }
+  @font-face { font-family:"Terminal"; src:url(/fuentes/vt323.woff2) format("woff2"); }
+  :root { --bg:#0d0b1e; --panel:#17142e; --line:#2e2856; --ink:#f4f1ff; --ink2:#cfc9f2; --muted:#8c86b8;
+          --green:#3dff6e; --yellow:#ffd23f; --pink:#ff4f9a; --cyan:#3ee8ff; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:"Terminal", ui-monospace, monospace; overflow:hidden; }
+  .page { height:100%; display:grid; grid-template-rows:auto 1fr; padding:2.6vh 2.4vw 2.4vh; gap:2.4vh; }
+  header { display:flex; justify-content:space-between; align-items:flex-end; gap:2vw; }
+  h1 { font-family:"Pixel", monospace; font-weight:400; font-size:3.6vh; color:var(--yellow); margin:0; text-shadow:.45vh .45vh 0 #000; white-space:nowrap; }
+  .steps { font-size:2.6vh; color:var(--ink2); margin-top:1vh; }
+  .steps b { color:var(--green); font-weight:400; }
+  .stats { display:flex; gap:2.6vw; }
+  .stat b { display:block; font-family:"Pixel", monospace; font-weight:400; font-size:3vh; color:var(--green); text-align:right; }
+  .stat span { font-size:2vh; color:var(--muted); text-transform:uppercase; }
+
+  .cols { display:grid; grid-template-columns:1fr 1fr 1.05fr; gap:1.6vw; min-height:0; }
+  .col { background:var(--panel); border:.4vh solid var(--line); box-shadow:.8vh .8vh 0 #000; display:flex; flex-direction:column; min-height:0; }
+  .col h2 { font-family:"Pixel", monospace; font-weight:400; font-size:1.6vh; color:var(--pink); margin:0; padding:1.8vh 1.2vw 1.4vh; border-bottom:.3vh dashed var(--line); display:flex; justify-content:space-between; }
+  .col h2 small { font-family:"Terminal", monospace; font-size:2.2vh; color:var(--muted); }
+  .scroll { overflow-y:auto; min-height:0; flex:1; padding:.6vh .8vw 1vh; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+
+  .row { display:grid; grid-template-columns:3vh 1fr; gap:.8vw; padding:1vh .4vw; border-bottom:.2vh solid #221d42; cursor:default; }
+  .row.can { cursor:pointer; }
+  .row.can:hover { background:#1e1a3a; }
+  .tick { width:2.6vh; height:2.6vh; border:.35vh solid var(--muted); margin-top:.3vh; display:flex; align-items:center; justify-content:center; font-family:"Pixel", monospace; font-size:1.2vh; color:#000; }
+  .row.on .tick { background:var(--green); border-color:var(--green); }
+  .row.on .tick::after { content:"✓"; font-family:"Terminal"; font-size:2.6vh; line-height:1; }
+  .who { font-size:2.1vh; color:var(--yellow); display:flex; justify-content:space-between; gap:.6vw; }
+  .tag { font-size:1.9vh; color:var(--muted); white-space:nowrap; }
+  .tag.ok { color:var(--green); } .tag.bad { color:var(--pink); } .tag.wip { color:var(--cyan); }
+  .what { font-size:2.5vh; color:var(--ink); line-height:1.1; margin-top:.2vh; word-break:break-word; }
+  .row:not(.on) .what { color:var(--muted); text-decoration:line-through; text-decoration-color:#5a5488; }
+  .row.wip .what { text-decoration:none; color:var(--ink2); }
+  .empty { color:var(--muted); font-size:2.6vh; padding:2vh .6vw; }
+
+  .btn { font-family:"Pixel", monospace; font-size:1.5vh; border:0; padding:1.6vh 1vw; cursor:pointer; box-shadow:.5vh .5vh 0 #000; margin:1.4vh 1.2vw 0; text-align:center; }
+  .btn.y { background:var(--yellow); color:#000; }
+  .btn.g { background:var(--green); color:#000; }
+  .btn:disabled { opacity:.35; cursor:default; }
+  .theme { display:grid; grid-template-columns:3vh 4.6vh 1fr; gap:.7vw; align-items:start; padding:1.2vh .4vw; border-bottom:.2vh solid #221d42; cursor:pointer; }
+  .theme .n { font-family:"Pixel", monospace; font-size:2.4vh; color:var(--green); line-height:1.2; }
+  .theme .t { font-size:2.7vh; color:var(--ink); line-height:1.05; }
+  .theme .ex { font-size:2vh; color:var(--muted); margin-top:.4vh; line-height:1.1; }
+  .theme .bar { height:.9vh; background:var(--green); margin-top:.8vh; }
+  .theme:not(.on) { opacity:.45; }
+  .theme.on .tick { background:var(--green); border-color:var(--green); }
+  .theme.on .tick::after { content:"✓"; font-family:"Terminal"; font-size:2.6vh; line-height:1; color:#000; }
+  .insight { font-size:2.3vh; color:var(--cyan); padding:1.2vh 1.2vw 0; line-height:1.15; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .status { font-size:2.4vh; color:var(--ink2); padding:1.2vh 1.2vw; line-height:1.2; }
+  .meter { margin:0 1.2vw 1.2vh; }
+  .meter span { font-size:2.1vh; color:var(--muted); display:flex; justify-content:space-between; }
+  .meter div { height:2vh; background:#0f0c22; border:.3vh solid var(--line); margin-top:.4vh; }
+  .meter i { display:block; height:100%; width:0; background:repeating-linear-gradient(90deg, var(--green) 0 1.4vh, transparent 1.4vh 1.8vh); transition:width .4s steps(6); }
+
+  .apps { display:grid; grid-template-columns:repeat(auto-fill, minmax(10.5vh, 1fr)); gap:1vh; }
+  .app { background:#0f0c22; border:.3vh solid var(--line); padding:.4vh; }
+  .app.working { border-color:var(--green); animation:glow .6s steps(2) infinite; }
+  @keyframes glow { 50% { border-color:var(--line); } }
+  .app .scr { width:100%; aspect-ratio:390/700; overflow:hidden; background:#fff; position:relative; }
+  .app iframe { width:390px; height:760px; border:0; transform-origin:0 0; pointer-events:none; position:absolute; left:0; top:0; }
+  .app .nm { font-size:1.8vh; color:var(--yellow); margin-top:.3vh; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <h1>EL PÚBLICO DECIDE</h1>
+      <div class="steps"><b>1</b> Acepta las sugerencias &nbsp; <b>2</b> Agrúpalas &nbsp; <b>3</b> Aplica las más pedidas a todos</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="sSug">0</b><span>sugerencias</span></div>
+      <div class="stat"><b id="sAcc">0</b><span>aceptadas</span></div>
+      <div class="stat"><b id="sApps">0</b><span>apps</span></div>
+      <div class="stat"><b id="sCost">$0.00</b><span>gastado</span></div>
+    </div>
+  </header>
+
+  <div class="cols">
+    <section class="col">
+      <h2>1 · SUGERENCIAS <small id="accHint">clic para aceptar o quitar</small></h2>
+      <div class="scroll" id="list"><div class="empty">Todavía nadie ha pedido un cambio.</div></div>
+    </section>
+
+    <section class="col">
+      <h2>2 · LO MÁS PEDIDO</h2>
+      <button class="btn y" id="bGroup">AGRUPAR LAS ACEPTADAS</button>
+      <div class="scroll" id="themes"><div class="empty">Agrupa las sugerencias aceptadas para ver los temas.</div></div>
+      <div class="insight" id="insight"></div>
+      <button class="btn g" id="bApply" disabled>APLICAR A TODOS</button>
+      <div class="status" id="gStatus"></div>
+      <div class="meter" id="mMain" hidden><span><em>App principal</em><em id="mMainN"></em></span><div><i id="mMainBar"></i></div></div>
+      <div class="meter" id="mApps" hidden><span><em>Apps del público</em><em id="mAppsN"></em></span><div><i id="mAppsBar"></i></div></div>
+    </section>
+
+    <section class="col">
+      <h2>3 · LAS APPS DEL PÚBLICO <small id="appsHint"></small></h2>
+      <div class="scroll"><div class="apps" id="apps"></div></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const key = new URLSearchParams(location.search).get("key") || "";
+let presenter = false, analysis = null, selected = new Set(), grouping = false;
+const tiles = new Map();
+
+async function post(action, body = {}) {
+  const r = await fetch(`/api/presenter/${action}?key=${encodeURIComponent(key)}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  return r.json();
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+
+let lastList = "";
+function drawList(items) {
+  const sig = JSON.stringify(items.map(x => [x.forkId, x.idx, x.status, x.accepted, x.text])) + presenter;
+  if (sig === lastList) return; // redraw only on change, so a click never lands on a row being replaced
+  lastList = sig;
+  $("sSug").textContent = items.length;
+  $("sAcc").textContent = items.filter(x => x.accepted).length;
+  if (!items.length) { $("list").innerHTML = '<div class="empty">Todavía nadie ha pedido un cambio.</div>'; return; }
+  const tag = x => x.status === "done" ? '<span class="tag ok">LISTO</span>' : x.status === "failed" ? '<span class="tag bad">NO FUNCIONÓ</span>' : x.status === "undone" ? '<span class="tag">DESHECHO</span>' : '<span class="tag wip">EN PROCESO</span>';
+  const atBottom = $("list").scrollTop + $("list").clientHeight >= $("list").scrollHeight - 4;
+  $("list").innerHTML = items.map(x => `
+    <div class="row ${x.accepted ? "on" : ""} ${x.status === "done" && presenter ? "can" : ""} ${x.status === "working" || x.status === "queued" ? "wip" : ""}" data-f="${x.forkId}" data-i="${x.idx}">
+      <div class="tick"></div>
+      <div><div class="who"><span>${esc(x.name)}</span>${tag(x)}</div><div class="what">“${esc(x.text)}”</div></div>
+    </div>`).join("");
+  $("list").querySelectorAll(".row.can").forEach(r => r.onclick = async () => { r.classList.toggle("on"); await post("accept", { forkId: r.dataset.f, idx: Number(r.dataset.i) }); refresh(); });
+  if (atBottom) $("list").scrollTop = $("list").scrollHeight;
+}
+
+function drawThemes() {
+  if (grouping) { $("themes").innerHTML = '<div class="empty">Leyendo cada sugerencia aceptada…</div>'; $("insight").textContent = ""; return; }
+  if (!analysis?.themes?.length) return;
+  const max = Math.max(...analysis.themes.map(t => t.count));
+  $("themes").innerHTML = analysis.themes.map((t, i) => `
+    <div class="theme ${selected.has(i) ? "on" : ""}" data-i="${i}">
+      <div class="tick"></div><div class="n">${t.count}</div>
+      <div><div class="t">${esc(t.title)}</div><div class="ex">${t.examples.slice(0, 2).map(e => "“" + esc(e) + "”").join(" · ")}</div>
+      <div class="bar" style="width:${Math.round(t.count / max * 100)}%"></div></div>
+    </div>`).join("");
+  $("themes").querySelectorAll(".theme").forEach(el => el.onclick = () => {
+    if (!presenter) return;
+    const i = Number(el.dataset.i); selected.has(i) ? selected.delete(i) : selected.add(i); drawThemes(); drawApply();
+  });
+  $("insight").textContent = analysis.insight || "";
+  if (!selected.size && presenter) $("gStatus").textContent = "Ningún tema lo pidieron 2 o más personas: elige con un clic cuáles aplicar.";
+}
+
+let lastGlobal = null;
+function drawApply(g = lastGlobal) {
+  lastGlobal = g;
+  const working = g?.status === "working";
+  $("bApply").disabled = !presenter || !selected.size || working || !analysis;
+  $("bApply").textContent = selected.size ? `APLICAR ${selected.size} A TODOS` : "APLICAR A TODOS";
+  if (!g || g.status === "idle") { $("mMain").hidden = $("mApps").hidden = true; $("gStatus").textContent = ""; return; }
+  $("mMain").hidden = $("mApps").hidden = false;
+  $("mMainN").textContent = `${g.mainDone}/${g.mainTotal}`;
+  $("mMainBar").style.width = (g.mainTotal ? g.mainDone / g.mainTotal * 100 : 0) + "%";
+  $("mAppsN").textContent = `${g.done}/${g.total}`;
+  $("mAppsBar").style.width = (g.total ? g.done / g.total * 100 : 100) + "%";
+  $("gStatus").textContent = working
+    ? `Agregando ${g.themes.join(", ")} a la app principal y a cada app del público…`
+    : `Listo: ${g.themes.join(", ")} ya está en la app principal y en ${g.total} apps del público. Quien entre ahora empieza con esta versión.`;
+}
+
+function fit(t) { const w = t.scr.clientWidth; if (w) t.iframe.style.transform = `scale(${w / 390})`; }
+const ro = new ResizeObserver(es => es.forEach(e => { const t = [...tiles.values()].find(x => x.scr === e.target); if (t) fit(t); }));
+function drawApps(forks) {
+  $("sApps").textContent = forks.length;
+  $("appsHint").textContent = forks.filter(f => f.status !== "idle").length ? `${forks.filter(f => f.status !== "idle").length} cambiando` : "";
+  for (const f of forks) {
+    let t = tiles.get(f.id);
+    if (!t) {
+      const el = document.createElement("div");
+      el.className = "app";
+      el.innerHTML = `<div class="scr"><iframe sandbox="allow-scripts" loading="lazy"></iframe></div><div class="nm"></div>`;
+      t = { el, scr: el.querySelector(".scr"), iframe: el.querySelector("iframe"), v: -1 };
+      $("apps").appendChild(el); tiles.set(f.id, t); ro.observe(t.scr);
+    }
+    t.el.querySelector(".nm").textContent = f.name;
+    t.el.classList.toggle("working", f.status !== "idle");
+    if (t.v !== f.version) { t.v = f.version; t.iframe.src = `/app/${f.id}?v=${f.version}`; }
+  }
+}
+
+async function refresh() {
+  try {
+    const [s, st] = await Promise.all([fetch("/api/suggestions?key=" + encodeURIComponent(key)).then(r => r.json()), fetch("/api/state").then(r => r.json())]);
+    presenter = s.presenter;
+    $("accHint").textContent = presenter ? "clic para aceptar o quitar" : "";
+    $("bGroup").disabled = !presenter || grouping;
+    drawList(s.suggestions);
+    if (s.analysis && (!analysis || s.analysis.at !== analysis.at)) {
+      analysis = s.analysis;
+      // Preselect only what 2+ people asked for (max 3): a one-off wish, like switching
+      // the language, should never become everyone's default by accident.
+      selected = new Set(analysis.themes.map((t, i) => t.count >= 2 ? i : -1).filter(i => i >= 0).slice(0, 3));
+      drawThemes();
+    }
+    drawApply(s.global);
+    drawApps(st.forks.filter(f => !f.hidden));
+    $("sCost").textContent = "$" + s.stats.cost.toFixed(2);
+  } catch {}
+}
+
+$("bGroup").onclick = async () => {
+  grouping = true; $("bGroup").disabled = true; drawThemes();
+  const r = await post("analyze");
+  grouping = false; $("bGroup").disabled = false;
+  if (r.error) { $("themes").innerHTML = `<div class="empty">${esc(r.error)}</div>`; return; }
+  analysis = null; await refresh();
+};
+$("bApply").onclick = async () => {
+  if (!selected.size) return;
+  $("bApply").disabled = true;
+  const r = await post("apply", { indexes: [...selected] });
+  if (r.error) $("gStatus").textContent = r.error;
+  refresh();
+};
+
+let pending = null;
+const soon = () => { if (!pending) pending = setTimeout(() => { pending = null; refresh(); }, 600); };
+const es = new EventSource("/events?wall=1");
+es.onmessage = e => { const ev = JSON.parse(e.data); if (ev.type === "reset") location.reload(); else soon(); };
+setInterval(refresh, 3000);
+refresh();
+</script>
+</body>
+</html>

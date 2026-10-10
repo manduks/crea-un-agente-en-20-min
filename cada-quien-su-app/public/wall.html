@@ -12,7 +12,7 @@
   header { display:grid; grid-template-columns:auto 1fr auto; gap:28px; align-items:center; padding:22px 28px 18px; border-bottom:1px solid var(--line); }
   .qr { background:#fff; padding:8px; border-radius:0; width:150px; height:150px; box-shadow:6px 6px 0 var(--pink); }
   .qr img { width:100%; height:100%; display:block; }
-  h1 { font-family:"Pixel", monospace; font-size:30px; margin:0; line-height:1.3; color:var(--yellow); text-shadow:4px 4px 0 #000; }
+  h1 { font-family:"Pixel", monospace; font-size:26px; margin:0; line-height:1.3; color:var(--yellow); text-shadow:4px 4px 0 #000; white-space:nowrap; }
   .url { color:var(--muted); margin-top:8px; font:14px ui-monospace, SFMono-Regular, Menlo, monospace; }
   .stats { display:flex; gap:28px; }
   .stat b { display:block; font-family:"Pixel", monospace; font-size:30px; font-weight:400; color:var(--green); line-height:1.4; }
@@ -179,12 +179,12 @@ function showAnalysis(a, status) {
       <div class="c">${t.count}</div>
       <div><div class="t">${esc(t.title)}</div><div class="ex">${t.examples.slice(0, 3).map(e => "“" + esc(e) + "”").join(" · ")}</div>
         <div class="bar" style="width:${Math.round(t.count / max * 100)}%"></div></div>
-      <div>${key ? `<button data-merge="${i}">Lanzar para todos</button>` : ""}</div>
+      <div>${key ? `<button data-merge="${i}">Aplicar a todos</button>` : ""}</div>
     </div>`).join("");
   $("insight").textContent = a.insight || "";
   $("themes").querySelectorAll("[data-merge]").forEach(b => b.onclick = () => {
     $("analysis").classList.remove("on");
-    openMain(`Lanzando “${a.themes[b.dataset.merge].title}” para todos…`);
+    openMain(`Aplicando “${a.themes[b.dataset.merge].title}” a todos…`);
     post("merge", { index: Number(b.dataset.merge) });
   });
 }
@@ -236,8 +236,21 @@ async function load() {
       if (ev.status === "failed") $("mainLog").textContent += `\nNo funcionó: ${ev.error}`;
       setStats(ev.stats);
     }
+    if (ev.type === "global") {
+      const g = ev.run;
+      if (g.status === "working") $("mainLog").textContent = `Aplicando a todos: ${g.themes.join(", ")} · app principal ${g.mainDone}/${g.mainTotal} · apps ${g.done}/${g.total}`;
+      if (g.status === "done") $("mainLog").textContent = `Listo: ${g.themes.join(", ")} ya está en la app principal y en ${g.total} apps del público.`;
+    }
     if (ev.type === "reset") location.reload();
   };
+  // Some networks buffer live events: re-read the state every 4 s as well.
+  setInterval(async () => {
+    try {
+      const s = await (await fetch("/api/state")).json();
+      s.forks.forEach(f => upsert(f));
+      setStats(s.stats);
+    } catch {}
+  }, 4000);
 }
 load();
 </script>

@@ -1,10 +1,12 @@
 # Cada quien su app
 
-Demo en vivo. Cada persona del público escanea un código QR y recibe **su propia copia** de una app de hábitos, con una sola caja: *"Cambia esta app…"*. Un agente de código ([pi](https://pi.dev)) reescribe su copia en unos 15 segundos. La pantalla del proyector muestra todas las copias juntas. Al final, el agente lee todos los cambios, dice qué fue lo que más pidió la gente y lo lanza para todos.
+Demo en vivo. Cada persona del público escanea un código QR y recibe **su propia copia** de una app de hábitos, con una sola caja: *"Cambia esta app…"*. Un agente de código ([pi](https://pi.dev)) reescribe su copia en unos 15 segundos. La pantalla del proyector muestra todas las copias juntas. Al final, en "El público decide", aceptas o quitas cada sugerencia, el agente las agrupa por tema y lo más pedido se aplica a la app principal y a la app de cada persona.
 
 La idea: cuando construir es gratis, ya no diseñas una app, diseñas un **espacio** de apps (piezas base, candados de seguridad, valores por defecto). Y la investigación de usuarios sale de lo que la gente construyó, no de lo que dijo.
 
 ![pantalla](docs/screenshots/wall.png)
+
+![El público decide](docs/screenshots/el-publico-decide.png)
 
 ## Cómo correrlo
 
@@ -27,6 +29,8 @@ La terminal imprime:
 | **Celulares** | la URL del QR (la del túnel en cuanto está lista, unos 5 s) |
 | **Presentación** | `http://localhost:4317/charla?key=…` · las diapositivas, con la pantalla en vivo adentro |
 | **Pantalla** | `http://localhost:4317/wall?key=…` · solo la pantalla de la demo |
+
+También existe `http://localhost:4317/revision?key=…`: la vista "El público decide" sola.
 
 La `key` es la clave del presentador (los botones de la pantalla). Cambia en cada arranque; fíjala con `PRESENTER_KEY=...` si quieres.
 
@@ -55,8 +59,11 @@ La `key` es la clave del presentador (los botones de la pantalla). Cambia en cad
 | `base/index.html` | La app inicial, en un solo archivo |
 | `public/phone.html` | Lo que ve cada persona en su celular: su app, la caja de cambios, el progreso en vivo y "Deshacer" |
 | `public/wall.html` | La pantalla del proyector: QR, contadores, todas las apps en vivo y los botones del presentador |
+| `public/review.html` | "El público decide": aceptar sugerencias, agruparlas y aplicar las más pedidas a todos |
 | `extensions/fork-guard.ts` | **Una extensión de pi de 30 líneas**: pi solo puede leer y editar el `index.html` de la carpeta de esa persona; todo lo demás se bloquea |
 | `test/mock-model.mjs` | Un modelo falso para probar pi sin API key |
+
+Los celulares reciben los cambios en vivo y además preguntan cada 2 s, porque algunas redes (y el túnel) retienen los eventos en vivo.
 
 Seguridad: la app de cada persona corre en un iframe aislado, sin acceso a la red; pi solo tiene read, edit y write más la extensión guardia; si una app se rompe, se restaura sola; cada versión se guarda para "Deshacer".
 
@@ -66,8 +73,8 @@ Seguridad: la app de cada persona corre en un iframe aislado, sin acceso a la re
 2. La gente entra y aparecen las tarjetas. "Cámbienla como quieran, con sus palabras."
 3. Narra la pantalla: las tarjetas que parpadean, la versión videojuego, el temporizador. Señala el contador de **$ gastado**.
 4. Alguien va a intentar romperla. Muestra `fork-guard.ts`: "El candado son 30 líneas que le pedí al agente."
-5. **¿Qué pidió la gente?** "Investigación de usuarios medida por lo que construyeron, no por lo que dijeron."
-6. **Lanzar para todos.** "Lo que pidieron ahora lo recibe cada usuario nuevo. Ese ciclo antes tomaba un trimestre."
+5. Al final, en **El público decide**: quita la sugerencia que intentó romperla, **Agrupar las aceptadas**. "Investigación de usuarios medida por lo que construyeron, no por lo que dijeron."
+6. **Aplicar a todos.** "En 25 segundos, lo que pidieron ya está en su celular y en la app de cada usuario nuevo. Ese ciclo antes tomaba un trimestre."
 
 ## Antes de la charla
 

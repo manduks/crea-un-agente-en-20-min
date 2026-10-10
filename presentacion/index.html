@@ -13,107 +13,113 @@
     --px:"Pixel", monospace; --tx:"Terminal", ui-monospace, monospace;
   }
   * { box-sizing:border-box; }
-  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:var(--tx); overflow:hidden; image-rendering:pixelated; }
-  body::before { /* CRT scanlines */
-    content:""; position:fixed; inset:0; pointer-events:none; z-index:20;
+  html, body { margin:0; height:100%; background:#000; color:var(--ink); font-family:var(--tx); overflow:hidden; }
+  body { display:grid; place-items:center; }
+  /* Fixed 16:9 stage: every size is relative to it, so a slide looks the same on a
+     laptop, a square window or the projector. */
+  .stage { position:relative; width:min(100vw, 177.78vh); height:min(100vh, 56.25vw); container-type:size; overflow:hidden; background:var(--bg); }
+  .stage::before { /* CRT scanlines */
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:20;
     background:repeating-linear-gradient(to bottom, rgba(0,0,0,.22) 0 2px, transparent 2px 4px);
   }
-  body::after { /* CRT vignette */
-    content:""; position:fixed; inset:0; pointer-events:none; z-index:21;
+  .stage::after { /* CRT vignette */
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:21;
     background:radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.55) 100%);
   }
-  .stars { position:fixed; inset:0; z-index:0; pointer-events:none; }
+  .stage.nocrt::before, .stage.nocrt::after { display:none; } /* live demos stay sharp */
+  .stars { position:absolute; inset:0; z-index:0; pointer-events:none; }
   .stars i { position:absolute; width:4px; height:4px; background:#fff; opacity:.35; animation:tw 1.6s steps(2) infinite; }
   @keyframes tw { 50% { opacity:.08; } }
 
-  .slide { position:absolute; inset:0; padding:12vh 8vw 15vh; display:none; flex-direction:column; justify-content:center; z-index:1; }
+  .slide { position:absolute; inset:0; padding:12cqh 8cqw 15cqh; display:none; flex-direction:column; justify-content:center; z-index:1; }
   .slide.on { display:flex; animation:boot .28s steps(4); }
   @keyframes boot { from { clip-path:inset(0 0 100% 0); } to { clip-path:inset(0 0 0 0); } }
 
-  .kicker { font-family:var(--px); font-size:1.5vh; color:var(--pink); margin-bottom:3vh; letter-spacing:.05em; }
-  h1 { font-family:var(--px); font-size:5.6vh; line-height:1.35; margin:0; color:var(--yellow); text-shadow:.6vh .6vh 0 #000, -.2vh -.2vh 0 var(--pink); max-width:84vw; font-weight:400; }
-  h2 { font-family:var(--px); font-size:3.3vh; line-height:1.45; margin:0 0 3.4vh; color:var(--yellow); text-shadow:.45vh .45vh 0 #000; max-width:84vw; font-weight:400; }
-  p, li { font-size:4vh; line-height:1.2; color:var(--ink2); max-width:74vw; }
-  p { margin:1.4vh 0; }
-  ul { margin:1vh 0; padding:0; list-style:none; } li { margin:1.3vh 0; padding-left:4.4vh; position:relative; }
-  li::before { content:"▶"; position:absolute; left:0; color:var(--green); font-size:2.6vh; top:.6vh; }
+  .kicker { font-family:var(--px); font-size:1.5cqh; color:var(--pink); margin-bottom:3cqh; letter-spacing:.05em; }
+  h1 { font-family:var(--px); font-size:5.6cqh; line-height:1.35; margin:0; color:var(--yellow); text-shadow:.6cqh .6cqh 0 #000, -.2cqh -.2cqh 0 var(--pink); max-width:84cqw; font-weight:400; }
+  h2 { font-family:var(--px); font-size:3.3cqh; line-height:1.45; margin:0 0 3.4cqh; color:var(--yellow); text-shadow:.45cqh .45cqh 0 #000; max-width:84cqw; font-weight:400; }
+  p, li { font-size:4cqh; line-height:1.2; color:var(--ink2); max-width:74cqw; }
+  p { margin:1.4cqh 0; }
+  ul { margin:1cqh 0; padding:0; list-style:none; } li { margin:1.3cqh 0; padding-left:4.4cqh; position:relative; }
+  li::before { content:"▶"; position:absolute; left:0; color:var(--green); font-size:2.6cqh; top:.6cqh; }
   b, strong { color:var(--green); font-weight:400; }
   .y { color:var(--yellow); } .p { color:var(--pink); } .c { color:var(--cyan); }
   .muted { color:var(--muted); }
-  .big { font-size:5vh; color:var(--ink); }
+  .big { font-size:5cqh; color:var(--ink); }
 
-  .box { background:var(--panel); border:.5vh solid var(--line); box-shadow:1vh 1vh 0 #000; padding:2.6vh 3vh; }
-  pre { font-family:var(--tx); font-size:3vh; line-height:1.18; color:var(--ink2); margin:0; white-space:pre; overflow:hidden; max-width:86vw; }
+  .box { background:var(--panel); border:.5cqh solid var(--line); box-shadow:1cqh 1cqh 0 #000; padding:2.6cqh 3cqh; }
+  pre { font-family:var(--tx); font-size:3cqh; line-height:1.18; color:var(--ink2); margin:0; white-space:pre; overflow:hidden; max-width:86cqw; }
   pre .cm { color:var(--muted); } pre .kw { color:var(--pink); } pre .st { color:var(--yellow); } pre .fn { color:var(--cyan); } pre .ok { color:var(--green); }
-  .grid2 { display:grid; grid-template-columns:1fr 1.05fr; gap:4vw; align-items:center; }
+  .grid2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:4cqw; align-items:center; }
 
-  .stats { display:grid; grid-template-columns:repeat(3, auto); gap:5vh 6vw; justify-content:start; margin-top:1vh; }
-  .stat b { display:block; font-family:var(--px); font-size:5.4vh; color:var(--green); text-shadow:.5vh .5vh 0 #000; line-height:1.2; }
-  .stat span { font-size:3vh; color:var(--muted); text-transform:uppercase; }
+  .stats { display:grid; grid-template-columns:repeat(3, auto); gap:5cqh 6cqw; justify-content:start; margin-top:1cqh; }
+  .stat b { display:block; font-family:var(--px); font-size:5.4cqh; color:var(--green); text-shadow:.5cqh .5cqh 0 #000; line-height:1.2; }
+  .stat span { font-size:3cqh; color:var(--muted); text-transform:uppercase; }
 
-  table { border-collapse:collapse; font-size:3.6vh; max-width:84vw; }
-  td, th { text-align:left; padding:1.5vh 3vw 1.5vh 0; border-bottom:.4vh dashed var(--line); vertical-align:top; color:var(--ink2); }
-  th { font-family:var(--px); color:var(--pink); font-weight:400; font-size:1.6vh; }
+  table { border-collapse:collapse; font-size:3.6cqh; max-width:84cqw; }
+  td, th { text-align:left; padding:1.5cqh 3cqw 1.5cqh 0; border-bottom:.4cqh dashed var(--line); vertical-align:top; color:var(--ink2); }
+  th { font-family:var(--px); color:var(--pink); font-weight:400; font-size:1.6cqh; }
   td:first-child { color:var(--muted); }
   td:last-child { color:var(--green); }
 
   /* HUD */
-  .hud { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:3vh 4vw 0; font-family:var(--px); font-size:1.6vh; z-index:5; }
+  .hud { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:3cqh 4cqw 0; font-family:var(--px); font-size:1.6cqh; z-index:5; }
   .hud .l { color:var(--pink); } .hud .m { color:var(--yellow); } .hud .r { color:var(--cyan); }
   .hud span b { color:var(--ink); }
 
   /* level map */
-  .map { position:fixed; left:8vw; right:8vw; bottom:3.6vh; display:flex; gap:1vw; z-index:5; transition:opacity .2s; }
-  .lvl { flex:1; height:4.2vh; border:.4vh solid var(--line); background:var(--panel); display:flex; align-items:center; justify-content:center; font-family:var(--px); font-size:1.15vh; color:var(--muted); position:relative; white-space:nowrap; overflow:visible; }
+  .map { position:absolute; left:8cqw; right:8cqw; bottom:3.6cqh; display:flex; gap:1cqw; z-index:5; transition:opacity .2s; }
+  .lvl { flex:1; height:4.2cqh; border:.4cqh solid var(--line); background:var(--panel); display:flex; align-items:center; justify-content:center; font-family:var(--px); font-size:1.15cqh; color:var(--muted); position:relative; white-space:nowrap; overflow:visible; }
   .lvl.done { background:#1f3a2a; border-color:#2f6b45; color:var(--green); }
   .lvl.cur { background:var(--green); border-color:var(--green); color:#000; }
-  .sprite { position:fixed; bottom:8.6vh; width:0; height:0; z-index:6; transition:left .45s steps(6); }
-  .sprite div { position:absolute; left:-2.4vh; bottom:0; width:.6vh; height:.6vh; }
+  .sprite { position:absolute; bottom:8.6cqh; width:0; height:0; z-index:6; transition:left .45s steps(6); }
+  .sprite div { position:absolute; left:-2.4cqh; bottom:0; width:.6cqh; height:.6cqh; }
   .sprite.hop div { animation:hop .45s steps(3); }
-  @keyframes hop { 50% { transform:translateY(-2vh); } }
+  @keyframes hop { 50% { transform:translateY(-2cqh); } }
 
   /* poll */
-  .poll { display:grid; gap:2vh; margin-top:1vh; max-width:80vw; }
-  .opt { display:grid; grid-template-columns:5vh 26vw 1fr 7vw; align-items:center; gap:1.4vw; font-size:3.8vh; }
-  .opt kbd { font-family:var(--px); font-size:1.8vh; color:#000; background:var(--yellow); padding:.8vh 0; text-align:center; box-shadow:.4vh .4vh 0 #000; }
-  .opt .bar { height:4vh; background:var(--panel); border:.4vh solid var(--line); }
-  .opt .bar div { height:100%; width:0; background:repeating-linear-gradient(90deg, var(--green) 0 2.6vh, transparent 2.6vh 3.1vh); transition:width .4s steps(8); }
-  .opt .n { font-family:var(--px); font-size:2.6vh; text-align:right; color:var(--green); }
-  .hint { font-size:2.6vh; color:var(--muted); margin-top:3vh; }
+  .poll { display:grid; gap:2cqh; margin-top:1cqh; max-width:80cqw; }
+  .opt { display:grid; grid-template-columns:5cqh 26cqw 1fr 7cqw; align-items:center; gap:1.4cqw; font-size:3.8cqh; }
+  .opt kbd { font-family:var(--px); font-size:1.8cqh; color:#000; background:var(--yellow); padding:.8cqh 0; text-align:center; box-shadow:.4cqh .4cqh 0 #000; }
+  .opt .bar { height:4cqh; background:var(--panel); border:.4cqh solid var(--line); }
+  .opt .bar div { height:100%; width:0; background:repeating-linear-gradient(90deg, var(--green) 0 2.6cqh, transparent 2.6cqh 3.1cqh); transition:width .4s steps(8); }
+  .opt .n { font-family:var(--px); font-size:2.6cqh; text-align:right; color:var(--green); }
+  .hint { font-size:2.6cqh; color:var(--muted); margin-top:3cqh; }
 
   /* quiz */
-  .quote { font-size:5.6vh; line-height:1.12; color:var(--ink); max-width:80vw; }
-  .choices { display:flex; gap:3vw; margin-top:5vh; }
-  .choice { font-family:var(--px); font-size:2.4vh; padding:2vh 3vw; border:.5vh solid var(--line); background:var(--panel); color:var(--ink2); box-shadow:.8vh .8vh 0 #000; }
-  .reveal { margin-top:4vh; font-size:3.8vh; color:var(--ink2); max-width:76vw; visibility:hidden; }
-  .reveal b { font-family:var(--px); font-size:2.6vh; display:block; margin-bottom:1.4vh; color:var(--yellow); }
+  .quote { font-size:5.6cqh; line-height:1.12; color:var(--ink); max-width:80cqw; }
+  .choices { display:flex; gap:3cqw; margin-top:5cqh; }
+  .choice { font-family:var(--px); font-size:2.4cqh; padding:2cqh 3cqw; border:.5cqh solid var(--line); background:var(--panel); color:var(--ink2); box-shadow:.8cqh .8cqh 0 #000; }
+  .reveal { margin-top:4cqh; font-size:3.8cqh; color:var(--ink2); max-width:76cqw; visibility:hidden; }
+  .reveal b { font-family:var(--px); font-size:2.6cqh; display:block; margin-bottom:1.4cqh; color:var(--yellow); }
   .slide.shown .reveal { visibility:visible; animation:boot .3s steps(4); }
   .slide.shown .choice.right { background:var(--green); border-color:var(--green); color:#000; animation:blink .5s steps(2) 3; }
   @keyframes blink { 50% { opacity:.2; } }
-  .xp { position:fixed; font-family:var(--px); font-size:3vh; color:var(--yellow); text-shadow:.4vh .4vh 0 #000; z-index:9; pointer-events:none; animation:up 1s steps(8) forwards; }
-  @keyframes up { to { transform:translateY(-8vh); opacity:0; } }
+  .xp { position:absolute; font-family:var(--px); font-size:3cqh; color:var(--yellow); text-shadow:.4cqh .4cqh 0 #000; z-index:9; pointer-events:none; animation:up 1s steps(8) forwards; }
+  @keyframes up { to { transform:translateY(-8cqh); opacity:0; } }
 
   /* start screen */
-  .press { font-family:var(--px); font-size:2.2vh; color:var(--green); margin-top:6vh; animation:blink 1s steps(2) infinite; }
-  .tag { font-family:var(--px); font-size:1.6vh; color:var(--cyan); margin-top:3vh; line-height:1.8; }
+  .press { font-family:var(--px); font-size:2.2cqh; color:var(--green); margin-top:6cqh; animation:blink 1s steps(2) infinite; }
+  .tag { font-family:var(--px); font-size:1.6cqh; color:var(--cyan); margin-top:3cqh; line-height:1.8; }
 
   /* live + qr */
   .live { position:absolute; inset:0; padding:0; display:none; z-index:7; background:#000; }
   .live.on { display:block; }
-  .live iframe { width:100%; height:calc(100% - 5vh); border:0; display:block; }
-  .livebar { height:5vh; display:flex; justify-content:space-between; align-items:center; padding:0 2vw; font-family:var(--px); font-size:1.3vh; color:var(--yellow); background:var(--bg); border-top:.4vh solid var(--line); cursor:pointer; }
-  .qrbox { background:#fff; padding:2vh; width:46vh; height:46vh; box-shadow:1.4vh 1.4vh 0 var(--pink); }
-  .qrbox.sm { width:34vh; height:34vh; box-shadow:1.2vh 1.2vh 0 var(--cyan); }
+  .live iframe { width:100%; height:calc(100% - 5cqh); border:0; display:block; }
+  .livebar { height:5cqh; display:flex; justify-content:space-between; align-items:center; padding:0 2cqw; font-family:var(--px); font-size:1.3cqh; color:var(--yellow); background:var(--bg); border-top:.4cqh solid var(--line); cursor:pointer; }
+  .qrbox { background:#fff; padding:2cqh; width:46cqh; height:46cqh; box-shadow:1.4cqh 1.4cqh 0 var(--pink); }
+  .qrbox.sm { width:34cqh; height:34cqh; box-shadow:1.2cqh 1.2cqh 0 var(--cyan); }
   .qrbox img { width:100%; height:100%; display:block; image-rendering:pixelated; }
-  .url { font-family:var(--px); font-size:1.6vh; color:var(--cyan); margin-top:3vh; word-break:break-all; line-height:1.7; }
-  .diagram { display:flex; align-items:center; gap:2vw; margin:3vh 0; font-family:var(--px); font-size:1.8vh; }
-  .diagram .n { background:var(--panel); border:.5vh solid var(--green); padding:2.4vh 2vw; box-shadow:.8vh .8vh 0 #000; color:var(--green); text-align:center; line-height:1.6; }
+  .url { font-family:var(--px); font-size:1.6cqh; color:var(--cyan); margin-top:3cqh; word-break:break-all; line-height:1.7; }
+  .diagram { display:flex; align-items:center; gap:2cqw; margin:3cqh 0; font-family:var(--px); font-size:1.8cqh; }
+  .diagram .n { background:var(--panel); border:.5cqh solid var(--green); padding:2.4cqh 2cqw; box-shadow:.8cqh .8cqh 0 #000; color:var(--green); text-align:center; line-height:1.6; }
   .diagram .n.y { border-color:var(--yellow); color:var(--yellow); }
   .diagram .n.p { border-color:var(--pink); color:var(--pink); }
-  .diagram .a { color:var(--ink); font-size:3vh; }
+  .diagram .a { color:var(--ink); font-size:3cqh; }
 </style>
 </head>
 <body>
+<div class="stage" id="stage">
 <div class="stars" id="stars"></div>
 
 <div class="hud" id="hud">
@@ -126,7 +132,7 @@
 <section class="slide" data-rung="-1" data-start>
   <div class="kicker">pi.dev · Oaxaca · octubre 2026</div>
   <h1>CREA UN AGENTE<br>DE IA EN<br>20 MINUTOS</h1>
-  <p class="big" style="margin-top:4vh">Construir ya es gratis. <span class="y">Decidir es el trabajo.</span></p>
+  <p class="big" style="margin-top:4cqh">Construir ya es gratis. <span class="y">Decidir es el trabajo.</span></p>
   <div class="press">PRESIONA ▶ PARA EMPEZAR</div>
 </section>
 
@@ -175,7 +181,7 @@
     <li>El producto se decidía <b>una vez por trimestre</b>, porque construir era caro</li>
     <li>Equivocarse costaba semanas, así que preguntábamos con encuestas</li>
   </ul>
-  <p class="big" style="margin-top:3vh">¿Qué pasa cuando el código cuesta <span class="y">centavos</span>?</p>
+  <p class="big" style="margin-top:3cqh">¿Qué pasa cuando el código cuesta <span class="y">centavos</span>?</p>
 </section>
 
 <!-- 6 · what is an agent -->
@@ -183,9 +189,9 @@
   <div class="kicker">NIVEL 1 · ¿QUÉ ES UN AGENTE?</div>
   <h2>Un modelo + herramientas + un ciclo</h2>
   <div class="diagram">
-    <div class="n">MODELO<br><span class="muted" style="font-size:1.3vh">piensa y pide</span></div><div class="a">→</div>
-    <div class="n y">HERRAMIENTA<br><span class="muted" style="font-size:1.3vh">leer · escribir · terminal</span></div><div class="a">→</div>
-    <div class="n p">RESULTADO<br><span class="muted" style="font-size:1.3vh">regresa al modelo</span></div><div class="a">↺</div>
+    <div class="n">MODELO<br><span class="muted" style="font-size:1.3cqh">piensa y pide</span></div><div class="a">→</div>
+    <div class="n y">HERRAMIENTA<br><span class="muted" style="font-size:1.3cqh">leer · escribir · terminal</span></div><div class="a">→</div>
+    <div class="n p">RESULTADO<br><span class="muted" style="font-size:1.3cqh">regresa al modelo</span></div><div class="a">↺</div>
   </div>
   <p>Se repite hasta que el modelo ya no pide nada. <b>Eso es todo.</b></p>
   <p>Claude Code, Cursor, Codex y pi son este ciclo con mejores herramientas y mejor contexto.</p>
@@ -199,7 +205,7 @@
       <h2>El ciclo completo cabe en una diapositiva</h2>
       <p>Archivo real del repo: <span class="c">agente-minimo/agente.mjs</span>. Sin dependencias.</p>
       <p><b>En vivo:</b></p>
-      <div class="box" style="margin-top:1vh"><pre><span class="ok">$</span> node agente.mjs <span class="st">"crea un reloj en reloj.html"</span></pre></div>
+      <div class="box" style="margin-top:1cqh"><pre><span class="ok">$</span> node agente.mjs <span class="st">"crea un reloj en reloj.html"</span></pre></div>
     </div>
     <div class="box"><pre><span class="cm">// 3. El ciclo: esto es todo el "agente"</span>
 <span class="kw">const</span> mensajes = [{ role: <span class="st">"user"</span>, content: tarea }];
@@ -232,7 +238,7 @@
         <li>Sin subagentes ni modo plan. <b>"Pídele a pi que los construya."</b></li>
         <li>Mario Zechner · Earendil · código abierto (MIT) · Pi 1.0 salió el 1 de octubre</li>
       </ul>
-      <div class="box" style="margin-top:2vh"><pre><span class="ok">$</span> curl -fsSL https://pi.dev/install.sh | sh</pre></div>
+      <div class="box" style="margin-top:2cqh"><pre><span class="ok">$</span> curl -fsSL https://pi.dev/install.sh | sh</pre></div>
     </div>
     <div class="box"><pre><span class="cm">// el prompt de sistema de pi 1.1 (traducido)</span>
 <span class="st">Eres un asistente experto en programación
@@ -255,19 +261,25 @@ editando código y escribiendo archivos.</span>
     <div>
       <h2>Le pides una función y se la escribe</h2>
       <p>En pi, una extensión es un archivo TypeScript: comandos, herramientas, barras de estado, candados de seguridad.</p>
-      <p><b>En vivo:</b> le pido a pi un comando <span class="c">/costo</span>. Escribe la extensión, <span class="c">/reload</span>, y ya existe.</p>
-      <p class="muted">"Software maleable como plastilina." · Armin Ronacher</p>
+      <p><b>En vivo, le pido a pi:</b></p>
+      <div class="box"><pre style="white-space:pre-wrap"><span class="st">"Crea una extensión de pi en ./costo.ts con
+un comando /costo que muestre cuánto llevo
+gastado en esta sesión y cuántos tokens."</span></pre></div>
+      <p class="muted">Tarda unos 30 segundos. Luego abro pi con la extensión: <span class="c">pi -e ./costo.ts</span> y escribo <span class="c">/costo</span>.</p>
     </div>
-    <div class="box"><pre><span class="cm">// una extensión de pi</span>
+    <div class="box"><pre><span class="cm">// una extensión de pi (versión corta)</span>
 <span class="kw">export default function</span> (pi) {
   <span class="cm">// un comando nuevo: /costo</span>
-  pi.<span class="fn">registerCommand</span>(<span class="st">"costo"</span>, { ... });
+  pi.<span class="fn">registerCommand</span>(<span class="st">"costo"</span>, {
+    description: <span class="st">"Lo gastado en la sesión"</span>,
+    handler: <span class="kw">async</span> (args, ctx) =>
+      ctx.ui.<span class="fn">notify</span>(<span class="st">`Gasto: $${</span><span class="fn">gastado</span>(ctx)<span class="st">}`</span>),
+  });
 
   <span class="cm">// se ejecuta antes de cada herramienta</span>
   pi.<span class="fn">on</span>(<span class="st">"tool_call"</span>, <span class="kw">async</span> (evento) => {
     <span class="kw">if</span> (<span class="fn">esPeligroso</span>(evento))
-      <span class="kw">return</span> { block: <span class="kw">true</span>,
-               reason: <span class="st">"Eso no."</span> };
+      <span class="kw">return</span> { block: <span class="kw">true</span>, reason: <span class="st">"Eso no."</span> };
   });
 }</pre></div>
   </div>
@@ -281,13 +293,14 @@ editando código y escribiendo archivos.</span>
       <h2>Saquen su celular</h2>
       <p class="big">Escanea y tendrás tu propia copia de una app de hábitos.</p>
       <p>Cámbiala como quieras, con tus palabras. Un agente reescribe <b>tu</b> copia en unos 15 segundos.</p>
+      <p class="muted">Al final revisamos juntos lo que pidieron, y lo más pedido se lo aplicamos a todos.</p>
     </div>
     <div class="qrbox"><img id="qrImg" alt="Código QR de la demo"></div>
   </div>
 </section>
 
 <!-- 11 · live -->
-<section class="slide live" data-rung="3" data-live="wall"><iframe id="wallFrame" title="Pantalla en vivo"></iframe><div class="livebar" id="livebar"><span>◀ ANTERIOR</span><span>CLIC PARA VOLVER A LA PRESENTACIÓN</span><span>SIGUIENTE ▶</span></div></section>
+<section class="slide live" data-rung="3" data-live="wall"><iframe title="Pantalla en vivo"></iframe><div class="livebar"><span>◀ ANTERIOR</span><span>CLIC PARA VOLVER A LA PRESENTACIÓN</span><span>SIGUIENTE ▶</span></div></section>
 
 <!-- 12 · guard -->
 <section class="slide" data-rung="3">
@@ -320,7 +333,7 @@ pi.<span class="fn">on</span>(<span class="st">"tool_call"</span>, <span class="
     <tr><th>ANTES</th><th>AHORA</th></tr>
     <tr><td>Una app para todos</td><td>Una base que cada quien transforma</td></tr>
     <tr><td>Encuestas: lo que dicen</td><td>Lo que construyeron, agrupado en segundos</td></tr>
-    <tr><td>Roadmap trimestral</td><td>"Lanzar para todos" en un clic</td></tr>
+    <tr><td>Roadmap trimestral</td><td>"Aplicar a todos" en un clic</td></tr>
     <tr><td>El PM escribe specs</td><td>El PM elige piezas base, candados y valores por defecto</td></tr>
   </table>
 </section>
@@ -335,7 +348,7 @@ pi.<span class="fn">on</span>(<span class="st">"tool_call"</span>, <span class="
     <div class="stat"><b>32/32</b><span>facturas idénticas (Tres B)</span></div>
     <div class="stat"><b>$0</b><span>de IA por factura</span></div>
   </div>
-  <p class="big" style="margin-top:2vh">Con el agente <span class="y">descubres</span> el flujo. Lo que lanzas es <span class="y">código</span>.</p>
+  <p class="big" style="margin-top:2cqh">Con el agente <span class="y">descubres</span> el flujo. Lo que lanzas es <span class="y">código</span>.</p>
 </section>
 
 <!-- 15 · level 5 -->
@@ -344,7 +357,7 @@ pi.<span class="fn">on</span>(<span class="st">"tool_call"</span>, <span class="
   <h2>Decide cuándo apagarlo <span class="p">antes</span> de lanzarlo</h2>
   <p>Verdict (un agente) lanzó un anuncio en Meta de <b>MX$700</b> para su app de preparación del ENARM.</p>
   <p>Antes de gastar, escribió cuándo lo iba a apagar. 145 visitas → 2 personas empezaron. <b>Lo apagó solo</b>, siguiendo su propia regla, y le sobraron ~MX$495.</p>
-  <p class="big" style="margin-top:2vh">Sin esa regla, cualquier resultado "se ve prometedor".</p>
+  <p class="big" style="margin-top:2cqh">Sin esa regla, cualquier resultado "se ve prometedor".</p>
 </section>
 
 <!-- 16 · level 5 b -->
@@ -374,15 +387,15 @@ pi.<span class="fn">on</span>(<span class="st">"tool_call"</span>, <span class="
 <section class="slide" data-rung="6">
   <div class="kicker">MINIJUEGO</div>
   <h1>¿AGENTE<br>O HUMANO?</h1>
-  <p class="big" style="margin-top:4vh">8 decisiones reales de mis empresas. Levanten la mano: ¿la tomó un agente o la tomé yo?</p>
-  <p class="muted">+100 puntos por cada una que adivine la mayoría.</p>
+  <p class="big" style="margin-top:4cqh">8 decisiones reales de mis proyectos y agentes. Levanten la mano: ¿la tomó un agente o la tomé yo?</p>
+  <p class="muted">+100 puntos por cada respuesta.</p>
 </section>
 
 <section class="slide quiz" data-rung="6">
   <div class="kicker">¿AGENTE O HUMANO? · 1/8</div>
-  <div class="quote">"Cada usuario nuevo nos cuesta $26 dólares al mes solo en IA. Hay que corregir el plan de la campaña antes de pagar por más registros."</div>
+  <div class="quote">"Cada usuario nuevo nos hace perder hasta $26 pesos al mes por lo que cuesta la IA en sus facturas. Hay que corregir la campaña antes de pagar por más registros."</div>
   <div class="choices"><div class="choice right">AGENTE</div><div class="choice">HUMANO</div></div>
-  <div class="reveal"><b>AGENTE · FISCALIFY</b>Lo midió solo, cruzando el costo de IA contra los planes, y corrigió su propio plan.</div>
+  <div class="reveal"><b>AGENTE · FISCALIFY</b>Lo midió solo, cruzando el costo de IA de cada factura contra lo que paga cada plan, y corrigió su propio memo de campaña.</div>
 </section>
 <section class="slide quiz" data-rung="6">
   <div class="kicker">¿AGENTE O HUMANO? · 2/8</div>
@@ -431,9 +444,9 @@ pi.<span class="fn">on</span>(<span class="st">"tool_call"</span>, <span class="
 <section class="slide" data-rung="6">
   <div class="kicker">LA PARTE HONESTA</div>
   <h2>Los agentes ejecutan. La demanda no se ejecuta.</h2>
-  <p>14 agentes lanzando todos los días. Ingresos recurrentes autónomos: <b>~$1,100 dólares al mes</b>. El código nunca fue el cuello de botella.</p>
+  <p>14 agentes lanzando todos los días. Ingresos recurrentes de los productos autónomos: <b>todavía menos de $1,000 dólares al mes</b>. El código nunca fue el cuello de botella.</p>
   <p>Afuera pasa lo mismo: un agente con presupuesto, producto y meta de $700 al mes generó <b>$0</b> en un mes. El problema fue la demanda, no la ejecución.</p>
-  <p class="big" style="margin-top:2vh">Por eso <span class="y">producto</span> es su trabajo ahora: qué construir, para quién y cómo saber si funcionó.</p>
+  <p class="big" style="margin-top:2cqh">Por eso <span class="y">producto</span> es nuestro trabajo ahora: qué construir, para quién y cómo saber si funcionó.</p>
 </section>
 
 <!-- tomorrow -->
@@ -463,7 +476,7 @@ pi.<span class="fn">on</span>(<span class="st">"tool_call"</span>, <span class="
       </ul>
       <div class="url" id="repoUrl">github.com/manduks/crea-un-agente-en-20-min</div>
     </div>
-    <div class="qrbox sm"><img id="qrRepo" alt="Código QR del repositorio"></div>
+    <div class="qrbox sm"><img class="qr-repo" alt="Código QR del repositorio"></div>
   </div>
 </section>
 
@@ -480,17 +493,29 @@ pi.<span class="fn">on</span>(<span class="st">"tool_call"</span>, <span class="
   <div class="hint" id="pollCompare"></div>
 </section>
 
+<!-- finale: the room decides -->
+<section class="slide live" data-rung="-1" data-live="revision"><iframe title="El público decide"></iframe><div class="livebar"><span>◀ ANTERIOR</span><span>CLIC PARA VOLVER A LA PRESENTACIÓN</span><span>SIGUIENTE ▶</span></div></section>
+
 <!-- end -->
 <section class="slide" data-rung="7">
-  <div class="kicker">FIN DEL JUEGO</div>
-  <h1>GRACIAS</h1>
-  <p class="big" style="margin-top:3vh">Construir ya es gratis. <span class="y">Decidir es el trabajo.</span></p>
-  <div class="tag">ARMANDO GONZÁLEZ · @MANDUKS<br>github.com/manduks/crea-un-agente-en-20-min</div>
-  <div class="press">¿CONTINUAR? INSERTA UNA IDEA</div>
+  <div class="grid2">
+    <div>
+      <div class="kicker">FIN DEL JUEGO</div>
+      <h1>GRACIAS</h1>
+      <p class="big" style="margin-top:3cqh">Construir ya es gratis. <span class="y">Decidir es el trabajo.</span></p>
+      <div class="tag">ARMANDO GONZÁLEZ · @MANDUKS</div>
+      <div class="press">¿CONTINUAR? INSERTA UNA IDEA</div>
+    </div>
+    <div>
+      <div class="qrbox sm"><img class="qr-repo" alt="Código QR del repositorio"></div>
+      <div class="url">github.com/manduks/<br>crea-un-agente-en-20-min</div>
+    </div>
+  </div>
 </section>
 
 <div class="map" id="map"></div>
 <div class="sprite" id="sprite"></div>
+</div>
 
 <script>
 // Demo server. When served by it (/charla) everything is same-origin; otherwise
@@ -501,6 +526,7 @@ const DEMO = params.get("demo") || (servedByDemo ? location.origin : "http://loc
 const KEY = params.get("key") || "";
 const LEVELS = ["NIVEL 0", "NIVEL 1", "NIVEL 2", "NIVEL 3", "NIVEL 4", "NIVEL 5", "JEFE"];
 
+const stage = document.getElementById("stage");
 const slides = [...document.querySelectorAll(".slide")];
 let i = Math.min(Number(location.hash.slice(1)) || 0, slides.length - 1);
 
@@ -508,7 +534,7 @@ let i = Math.min(Number(location.hash.slice(1)) || 0, slides.length - 1);
 const stars = document.getElementById("stars");
 for (let k = 0; k < 60; k++) {
   const s = document.createElement("i");
-  s.style.left = Math.random() * 100 + "vw"; s.style.top = Math.random() * 100 + "vh";
+  s.style.left = Math.random() * 100 + "cqw"; s.style.top = Math.random() * 100 + "cqh";
   s.style.animationDelay = (Math.random() * 1.6).toFixed(2) + "s";
   stars.appendChild(s);
 }
@@ -531,12 +557,12 @@ const sprite = document.getElementById("sprite");
 ROBOT.forEach((row, r) => [...row].forEach((ch, c) => {
   if (ch === ".") return;
   const p = document.createElement("div");
-  p.style.cssText = `background:${COLORS[ch]};left:${-2.4 + c * .6}vh;bottom:${(7 - r) * .6}vh`;
+  p.style.cssText = `background:${COLORS[ch]};left:${-2.4 + c * .6}cqh;bottom:${(7 - r) * .6}cqh`;
   sprite.appendChild(p);
 }));
 
 document.getElementById("qrImg").src = DEMO + "/qr.svg";
-document.getElementById("qrRepo").src = DEMO + "/qr-repo.svg";
+document.querySelectorAll(".qr-repo").forEach(i => i.src = DEMO + "/qr-repo.svg");
 
 // 8-bit sounds (m = silencio)
 let muted = localStorage.getItem("muted") === "1";
@@ -555,13 +581,17 @@ function beep(notes, dur = .07) {
 }
 
 // score
-let score = Number(localStorage.getItem("score") || 0);
+// Points and polls belong to one run of the demo server (its key changes on every
+// start), so each talk starts at zero without anyone clearing anything.
+const RUN = "run:" + (KEY || "local") + ":";
+const store = { get: k => localStorage.getItem(RUN + k), set: (k, v) => localStorage.setItem(RUN + k, v) };
+let score = Number(store.get("score") || 0);
 const scoreEl = document.getElementById("score");
 const drawScore = () => scoreEl.textContent = String(score).padStart(6, "0");
 drawScore();
 
 // polls persist so a reload on stage loses nothing
-const polls = JSON.parse(localStorage.getItem("polls") || "{}");
+const polls = JSON.parse(store.get("polls") || "{}");
 function drawPoll(s) {
   const id = s.dataset.poll; const v = polls[id] || [0,0,0,0]; const max = Math.max(1, ...v);
   s.querySelectorAll(".opt").forEach((o, k) => { o.querySelector(".n").textContent = v[k]; o.querySelector(".bar div").style.width = (v[k] / max * 100) + "%"; });
@@ -570,6 +600,20 @@ function drawPoll(s) {
     const lowA = Math.round((a[0] + a[1]) / tot(a) * 100), lowB = Math.round((b[0] + b[1]) / tot(b) * 100);
     document.getElementById("pollCompare").textContent = `Menos de la mitad del tiempo en código · al inicio: ${lowA} % · ahora: ${lowB} %`;
   }
+}
+
+// Safety net: if a slide's content doesn't fit the stage, shrink its code first,
+// then the whole slide, until it fits.
+function fitSlide(s) {
+  if (s.dataset.live) return;
+  const pres = [...s.querySelectorAll("pre")];
+  pres.forEach(p => p.style.fontSize = "");
+  s.style.zoom = "";
+  const over = () => s.scrollHeight > s.clientHeight + 2 || pres.some(p => p.scrollWidth > p.clientWidth + 2);
+  for (let k = 0; k < 12 && over() && pres.length; k++) {
+    pres.forEach(p => { const f = parseFloat(getComputedStyle(p).fontSize); p.style.fontSize = (f * 0.93) + "px"; });
+  }
+  for (let z = 0.96; z >= 0.7 && over(); z -= 0.04) s.style.zoom = z;
 }
 
 function show(n, sound = true) {
@@ -583,13 +627,15 @@ function show(n, sound = true) {
   map.style.opacity = onMap ? 1 : 0;
   sprite.style.opacity = onMap ? 1 : 0;
   if (onMap) {
-    const box = map.children[rung].getBoundingClientRect();
-    sprite.style.left = (box.left + box.width / 2) + "px";
+    const box = map.children[rung].getBoundingClientRect(), st = stage.getBoundingClientRect();
+    sprite.style.left = (box.left - st.left + box.width / 2) + "px";
     if (rung !== prevRung) { sprite.classList.remove("hop"); void sprite.offsetWidth; sprite.classList.add("hop"); }
   }
   document.getElementById("hudLevel").textContent =
     rung >= 0 && rung <= 6 ? `${LEVELS[rung]} · ${String(i + 1).padStart(2, "0")}/${slides.length}` : `${String(i + 1).padStart(2, "0")}/${slides.length}`;
-  if (s.dataset.live === "wall") { const f = document.getElementById("wallFrame"); if (!f.src) f.src = `${DEMO}/wall?key=${encodeURIComponent(KEY)}`; }
+  stage.classList.toggle("nocrt", !!s.dataset.live);
+  if (s.dataset.live) { const f = s.querySelector("iframe"); if (!f.src) f.src = `${DEMO}/${s.dataset.live === "wall" ? "wall" : "revision"}?key=${encodeURIComponent(KEY)}`; }
+  fitSlide(s);
   if (s.dataset.poll) drawPoll(s);
   if (sound) beep(rung !== prevRung && rung >= 0 ? [523, 659, 784, 1046] : [660]);
   history.replaceState(null, "", location.pathname + location.search + "#" + i);
@@ -597,12 +643,12 @@ function show(n, sound = true) {
 
 function reveal(s) {
   s.classList.add("shown");
-  score += 100; localStorage.setItem("score", score); drawScore();
+  score += 100; store.set("score", score); drawScore();
   beep([784, 988, 1175, 1568], .08);
-  const r = s.querySelector(".choice.right").getBoundingClientRect();
+  const r = s.querySelector(".choice.right").getBoundingClientRect(), st = stage.getBoundingClientRect();
   const xp = document.createElement("div"); xp.className = "xp"; xp.textContent = "+100";
-  xp.style.left = r.right + 10 + "px"; xp.style.top = r.top + "px";
-  document.body.appendChild(xp); setTimeout(() => xp.remove(), 1100);
+  xp.style.left = r.right - st.left + 10 + "px"; xp.style.top = r.top - st.top + "px";
+  stage.appendChild(xp); setTimeout(() => xp.remove(), 1100);
 }
 
 function next() {
@@ -612,7 +658,7 @@ function next() {
 }
 function prev() {
   const s = slides[i];
-  if (s.classList.contains("quiz") && s.classList.contains("shown")) { s.classList.remove("shown"); score = Math.max(0, score - 100); localStorage.setItem("score", score); drawScore(); return; }
+  if (s.classList.contains("quiz") && s.classList.contains("shown")) { s.classList.remove("shown"); score = Math.max(0, score - 100); store.set("score", score); drawScore(); return; }
   show(i - 1);
 }
 
@@ -621,9 +667,9 @@ document.addEventListener("keydown", e => {
   if (s.dataset.poll && /^Digit[1-4]$/.test(e.code)) {
     const k = Number(e.code.slice(5)) - 1; const v = polls[s.dataset.poll] || [0,0,0,0];
     v[k] = Math.max(0, v[k] + (e.shiftKey ? -1 : 1)); polls[s.dataset.poll] = v;
-    localStorage.setItem("polls", JSON.stringify(polls)); drawPoll(s); beep([e.shiftKey ? 330 : 880]); return;
+    store.set("polls", JSON.stringify(polls)); drawPoll(s); beep([e.shiftKey ? 330 : 880]); return;
   }
-  if (s.dataset.poll && e.key === "0") { polls[s.dataset.poll] = [0,0,0,0]; localStorage.setItem("polls", JSON.stringify(polls)); drawPoll(s); return; }
+  if (s.dataset.poll && e.key === "0") { polls[s.dataset.poll] = [0,0,0,0]; store.set("polls", JSON.stringify(polls)); drawPoll(s); return; }
   if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); next(); }
   if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); prev(); }
   if (e.key === "Home") show(0);
@@ -631,13 +677,14 @@ document.addEventListener("keydown", e => {
   if (e.key === "f") document.documentElement.requestFullscreen?.();
   if (e.key === "m") { muted = !muted; localStorage.setItem("muted", muted ? "1" : "0"); }
   if (e.key === "w") { const w = slides.findIndex(x => x.dataset.live === "wall"); if (w >= 0) show(w); }
+  if (e.key === "e") { const w = slides.findIndex(x => x.dataset.live === "revision"); if (w >= 0) show(w); }
   if (e.key === "r" && e.shiftKey) { // reinicia puntos y encuestas
-    score = 0; localStorage.setItem("score", 0); drawScore();
-    for (const k in polls) delete polls[k]; localStorage.setItem("polls", "{}");
+    score = 0; store.set("score", 0); drawScore();
+    for (const k in polls) delete polls[k]; store.set("polls", "{}");
     slides.forEach(x => x.classList.remove("shown")); show(i, false);
   }
 });
-document.getElementById("livebar").addEventListener("click", e => { e.stopPropagation(); window.focus(); (e.clientX > innerWidth / 2 ? next : prev)(); });
+document.querySelectorAll(".livebar").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); window.focus(); (e.clientX > innerWidth / 2 ? next : prev)(); }));
 document.addEventListener("click", e => { if (e.target.closest("iframe, .livebar")) return; (e.clientX > innerWidth / 3 ? next : prev)(); });
 window.addEventListener("hashchange", () => { const n = Number(location.hash.slice(1)); if (!Number.isNaN(n) && n !== i) show(n, false); });
 window.addEventListener("resize", () => show(i, false));

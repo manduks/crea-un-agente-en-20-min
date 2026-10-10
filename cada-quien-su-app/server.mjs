@@ -73,11 +73,25 @@ function save() {
 }
 
 function publicFork(f) {
+  const last = f.requests.at(-1);
   return {
     id: f.id, name: f.name, version: f.version, status: f.status, hidden: !!f.hidden,
-    lastRequest: f.requests.at(-1)?.text || "", lastSummary: f.requests.at(-1)?.summary || "", lastStatus: f.requests.at(-1)?.status || "",
+    lastRequest: last?.text || "", lastSummary: last?.summary || "", lastStatus: last?.status || "",
+    lastSource: last?.source || "persona", progress: f.progress || "",
     changes: f.requests.filter(r => r.status === "done").length,
   };
+}
+
+// Every suggestion people typed (not the ones the presenter pushed to everyone).
+function suggestions() {
+  const out = [];
+  for (const f of Object.values(state.forks).sort((a, b) => a.createdAt - b.createdAt)) {
+    f.requests.forEach((r, idx) => {
+      if (r.source === "publico") return;
+      out.push({ forkId: f.id, idx, name: f.name, text: r.text, status: r.status, summary: r.summary, accepted: r.accepted !== false && r.status === "done", ts: r.ts });
+    });
+  }
+  return out;
 }
 
 function stats() {
@@ -195,10 +209,20 @@ const EDIT_RULES = `Rules:
 - No network: no fetch, no external scripts, images or fonts. Use emoji-free text, CSS and inline SVG for visuals.
 - localStorage may be unavailable: keep any storage access inside try/catch.
 - Keep it working on a phone screen (about 390px wide). Keep the rest of the app working.
+- The person must SEE the change as soon as the app reloads, without clicking or setting anything. Example: for "modo oscuro" the app is dark right away (a switch back to light is optional). Never hide the change behind a toggle, setting or system preference. Visible doesn't mean started: a timer, a sound or an animation the person would start stays ready for them to start.
 - Make focused edits; be fast.
-- Every piece of text a user sees in the app must be in Spanish (Mexico), including anything you add.
+- Text the user sees stays in Spanish (Mexico), including anything you add, unless the person asks for another language; then translate the whole app fully, with no Spanish left in parentheses.
 - If the request is harmful, hateful or explicit, make a harmless playful change instead.
-- Finish with one short sentence in Spanish (Mexico), max 12 words, saying what you changed, addressed to the person ("Le puse modo oscuro a tu app."). No preamble.`;
+- End your reply with one last line that starts with "RESUMEN:" followed by one short sentence in Spanish (Mexico), max 14 words, plain text, no markdown, telling the person what you changed ("RESUMEN: Le puse modo oscuro a tu app.").`;
+
+// The one-line summary the person sees on their phone.
+function summaryOf(text) {
+  const m = [...String(text || "").matchAll(/RESUMEN:\s*(.+)/g)].at(-1);
+  let line = m ? m[1] : String(text || "").split("\n").map(l => l.trim()).filter(Boolean).at(-1) || "Listo.";
+  line = line.replace(/[*_`#>]/g, "").replace(/^[-•]\s*/, "").trim();
+  if (line.length > 140) line = line.slice(0, 140).replace(/\s+\S*$/, "") + "…";
+  return line || "Listo.";
+}
 
 // ------------------------------------------------------------------ jobs ----
 
@@ -235,20 +259,23 @@ async function editInPlace({ dir, prompt, onLine }) {
   return { ok: true, text: r.text, cost: r.cost, before };
 }
 
-function enqueueChange(fork, text) {
-  const req = { text, ts: Date.now(), status: "queued", summary: "", cost: 0 };
+// opts.source: "persona" (they typed it) or "publico" (the presenter pushed the room's favorites).
+// opts.prompt overrides the default prompt.
+function enqueueChange(fork, text, opts = {}) {
+  const req = { text, ts: Date.now(), status: "queued", summary: "", cost: 0, source: opts.source || "persona" };
   fork.requests.push(req);
   fork.status = "queued";
+  fork.progress = "En la fila, el agente ya viene";
   save();
   broadcast({ type: "fork", fork: publicFork(fork) });
 
   queue.push(async () => {
     fork.status = "working"; req.status = "working";
-    broadcast({ type: "fork", fork: publicFork(fork) });
     const dir = path.join(FORKS, fork.id);
-    const progress = line => broadcast({ type: "progress", fork: fork.id, line });
+    const progress = line => { fork.progress = line; broadcast({ type: "progress", fork: fork.id, line }); };
     progress("Pensando");
-    const prompt = `You are editing a tiny web app that belongs to ${fork.name}. They asked:\n\n"${text}"\n\nMake that change.\n\n${EDIT_RULES}`;
+    broadcast({ type: "fork", fork: publicFork(fork) });
+    const prompt = opts.prompt || `You are editing a tiny web app that belongs to ${fork.name}. They asked:\n\n"${text}"\n\nMake that change.\n\n${EDIT_RULES}`;
     const r = await editInPlace({ dir, prompt, onLine: progress });
     req.cost = r.cost;
     if (r.ok) {
@@ -256,14 +283,21 @@ function enqueueChange(fork, text) {
       fs.writeFileSync(path.join(dir, "history", `v${fork.version}.html`), r.before);
       fork.version++;
       req.status = "done";
-      req.summary = (r.text || "Listo.").split("\n").filter(Boolean).at(-1).slice(0, 160);
+      req.summary = summaryOf(r.text);
+    } else if (req.source === "publico" && r.error === "no se hizo ningún cambio") {
+      req.status = "done";
+      req.summary = "Tu app ya lo tenía.";
     } else {
       req.status = "failed";
       req.summary = `No funcionó: ${String(r.error).slice(0, 140)}`;
     }
+    if (req.source === "publico") globalRun.done++;
     fork.status = "idle";
+    fork.progress = "";
     save();
-    broadcast({ type: "fork", fork: publicFork(fork), done: { ok: r.ok, summary: req.summary } });
+    broadcast({ type: "fork", fork: publicFork(fork), done: { ok: req.status === "done", summary: req.summary } });
+    if (req.source === "publico") broadcast({ type: "global", run: globalRun });
+    if (fork.pendingGlobal) { const g = fork.pendingGlobal; fork.pendingGlobal = null; enqueueChange(fork, g.text, g); }
   });
   pump();
 }
@@ -271,13 +305,10 @@ function enqueueChange(fork, text) {
 // ------------------------------------------------------- analyze & merge ----
 
 async function analyze() {
-  const lines = [];
-  for (const f of Object.values(state.forks)) {
-    for (const r of f.requests) if (r.status === "done") lines.push(`- ${f.name}: ${r.text}`);
-  }
-  if (!lines.length) return { error: "Todavía no hay cambios." };
+  const lines = suggestions().filter(x => x.accepted).map(x => `- ${x.name}: ${x.text}`);
+  if (!lines.length) return { error: "Todavía no hay sugerencias aceptadas." };
   broadcast({ type: "analysis", status: "working" });
-  const prompt = `${lines.length} people each changed their own copy of a small habit-tracker web app. Here is every change they asked for:\n\n${lines.join("\n")}\n\nGroup them into at most 5 themes, most-requested first. Reply with JSON only, no prose, in this shape:\n{"themes":[{"title":"short theme name","count":3,"examples":["...","..."],"instruction":"one concrete instruction to add this theme to the main app so it works for everyone"}],"insight":"one sentence a product manager should take away"}\nWrite "title", "instruction" and "insight" in Spanish (Mexico). Copy "examples" exactly as people wrote them.`;
+  const prompt = `${lines.length} people each changed their own copy of a small habit-tracker web app. Here is every change they asked for:\n\n${lines.join("\n")}\n\nGroup them into at most 5 themes, most-requested first; "count" is how many of the lines above belong to the theme. Reply with JSON only, no prose, in this shape:\n{"themes":[{"title":"short theme name","count":3,"examples":["...","..."],"instruction":"one concrete instruction to add this theme to the main app; the feature must be visible and on by default, never an opt-in setting"}],"insight":"one sentence (max 25 words) a product manager should take away"}\nWrite "title", "instruction" and "insight" in Spanish (Mexico). Copy "examples" exactly as people wrote them.`;
   const r = await runEngine({ cwd: DATA, prompt, mode: "think" });
   state.totalCost += r.cost;
   let parsed = null;
@@ -292,17 +323,54 @@ async function analyze() {
   return state.analysis;
 }
 
-async function mergeTheme(index) {
-  const theme = state.analysis?.themes?.[index];
-  if (!theme) return { error: "Primero corre el análisis." };
-  broadcast({ type: "main", status: "working", title: theme.title });
-  const progress = line => broadcast({ type: "progress", fork: "main", line });
-  const prompt = `This is the main version of a small habit-tracker web app that everyone uses. ${theme.count} people independently asked for: "${theme.title}" (for example: ${theme.examples.map(e => `"${e}"`).join(", ")}).\n\nAdd it to the main app: ${theme.instruction}\nMake it a good default for everyone.\n\n${EDIT_RULES}`;
-  const r = await editInPlace({ dir: MAIN, prompt, onLine: progress });
-  if (r.ok) { state.main.version++; state.main.merged.push(theme.title); }
-  save();
-  broadcast({ type: "main", status: r.ok ? "done" : "failed", title: theme.title, version: state.main.version, error: r.error, stats: stats() });
-  return r.ok ? { ok: true } : { error: r.error };
+// Apply the chosen themes everywhere: first the main app (what new people get),
+// then every person's own copy, keeping what they already changed.
+let globalRun = { status: "idle", themes: [], total: 0, done: 0, mainDone: 0 };
+
+async function applyGlobal(indexes) {
+  const themes = indexes.map(i => state.analysis?.themes?.[i]).filter(Boolean);
+  if (!themes.length) return { error: "Elige al menos un tema." };
+  if (globalRun.status === "working") return { error: "Ya se está aplicando." };
+  const forks = Object.values(state.forks).filter(f => !f.hidden);
+  globalRun = { status: "working", themes: themes.map(t => t.title), total: forks.length, done: 0, mainDone: 0, mainTotal: 1 };
+  broadcast({ type: "global", run: globalRun });
+
+  const list = themes.map((t, n) => `${n + 1}. ${t.title}: ${t.instruction}`).join("\n");
+  const text = `Lo más pedido: ${themes.map(t => t.title).join(", ")}`;
+
+  // 1) everyone's own app, in parallel (the queue runs MAX_PARALLEL at a time)
+  for (const f of forks) {
+    const prompt = `You are editing a tiny web app that belongs to ${f.name}. The audience voted on everyone's suggestions, and these were the most requested:\n\n${list}\n\nAdd them to this app, visible and on by default. Keep every change this person already made; if the app already has one of them, keep theirs and don't add a duplicate.\n\n${EDIT_RULES}`;
+    const job = { source: "publico", prompt, text };
+    if (f.status === "idle") enqueueChange(f, text, job);
+    else f.pendingGlobal = { ...job };
+  }
+
+  // 2) the main app (what new people get), one combined pass, at the same time
+  (async () => {
+    broadcast({ type: "main", status: "working", title: themes.map(t => t.title).join(", ") });
+    const progress = line => broadcast({ type: "progress", fork: "main", line });
+    const prompt = `This is the main version of a small habit-tracker web app that everyone uses. The audience voted on everyone's suggestions, and these were the most requested:\n\n${list}\n\nAdd all of them to the main app, visible and on by default, as good defaults for everyone.\n\n${EDIT_RULES}`;
+    const r = await editInPlace({ dir: MAIN, prompt, onLine: progress });
+    if (r.ok) { state.main.version++; state.main.merged.push(...themes.map(t => t.title)); }
+    globalRun.mainDone = 1;
+    save();
+    broadcast({ type: "main", status: r.ok ? "done" : "failed", title: themes.map(t => t.title).join(", "), version: state.main.version, error: r.error, stats: stats() });
+    broadcast({ type: "global", run: globalRun });
+    waitGlobal();
+  })();
+  return { ok: true, total: forks.length };
+}
+
+function waitGlobal() {
+  if (globalRun.status !== "working") return;
+  if (globalRun.done >= globalRun.total && globalRun.mainDone >= globalRun.mainTotal) {
+    globalRun.status = "done";
+    save();
+    broadcast({ type: "global", run: globalRun, stats: stats() });
+    return;
+  }
+  setTimeout(waitGlobal, 1000);
 }
 
 // ------------------------------------------------------------------ http ----
@@ -342,6 +410,10 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "GET" && (p === "/" || p.startsWith("/u/"))) return servePublic(res, "phone.html");
     if (req.method === "GET" && p === "/wall") return servePublic(res, "wall.html");
+    if (req.method === "GET" && p === "/revision") return servePublic(res, "review.html");
+    if (req.method === "GET" && p === "/api/suggestions") {
+      return send(res, 200, { suggestions: suggestions(), analysis: state.analysis, global: globalRun, main: state.main, stats: stats(), presenter: isPresenter(url) });
+    }
 
     // the talk's slides, served by the same server
     if (req.method === "GET" && (p === "/charla" || p === "/charla/")) {
@@ -370,7 +442,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && p === "/events") {
-      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive" });
+      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache, no-transform", connection: "keep-alive", "x-accel-buffering": "no" });
+      res.write(`: ${" ".repeat(2048)}\n\n`); // pushes proxies to flush; phones also poll, so nothing depends on this
       const client = { res, fork: url.searchParams.get("fork"), wall: url.searchParams.has("wall") };
       clients.add(client);
       res.write(`data: ${JSON.stringify({ type: "hello", stats: stats(), joinUrl: joinUrl() })}\n\n`);
@@ -413,7 +486,7 @@ const server = http.createServer(async (req, res) => {
       if (!f) return send(res, 404, { error: "No encontramos tu app. Recarga la página." });
       if (!text) return send(res, 400, { error: "Escribe qué quieres cambiar." });
       if (f.status !== "idle") return send(res, 409, { error: "Tu app todavía se está cambiando." });
-      if (f.requests.length >= cfg.maxChangesPerPerson) return send(res, 429, { error: "Llegaste al límite de cambios. ¡Mira la pantalla!" });
+      if (f.requests.filter(r => r.source !== "publico").length >= cfg.maxChangesPerPerson) return send(res, 429, { error: "Llegaste al límite de cambios. ¡Mira la pantalla!" });
       if (state.totalCost >= cfg.budgetUsd) return send(res, 429, { error: "Se acabó el presupuesto del demo. ¡Mira la pantalla!" });
       enqueueChange(f, text);
       return send(res, 200, { ok: true, position: queue.length });
@@ -440,7 +513,13 @@ const server = http.createServer(async (req, res) => {
       const action = p.slice("/api/presenter/".length);
       const body = await readBody(req);
       if (action === "analyze") return send(res, 200, await analyze());
-      if (action === "merge") return send(res, 200, await mergeTheme(Number(body.index || 0)));
+      if (action === "merge") return send(res, 200, await applyGlobal([Number(body.index || 0)]));
+      if (action === "apply") return send(res, 200, await applyGlobal((body.indexes || []).map(Number)));
+      if (action === "accept") {
+        const r = state.forks[body.forkId]?.requests?.[Number(body.idx)];
+        if (r && r.status === "done") { r.accepted = r.accepted === false; save(); broadcast({ type: "suggestions" }); }
+        return send(res, 200, { ok: true });
+      }
       if (action === "hide") {
         const f = state.forks[body.id];
         if (f) { f.hidden = !f.hidden; save(); broadcast({ type: "fork", fork: publicFork(f) }); }
@@ -452,6 +531,7 @@ const server = http.createServer(async (req, res) => {
         fs.mkdirSync(FORKS, { recursive: true });
         fs.copyFileSync(BASE_HTML, path.join(MAIN, "index.html"));
         state = { forks: {}, totalCost: 0, analysis: null, main: { version: 1, merged: [] } };
+        globalRun = { status: "idle", themes: [], total: 0, done: 0, mainDone: 0 };
         save();
         broadcast({ type: "reset" });
         return send(res, 200, { ok: true });
