@@ -2,7 +2,7 @@
 
 Material de la charla sobre [pi.dev](https://pi.dev) (Oaxaca, octubre 2026). Todo es código abierto: descárgalo, córrelo y cámbialo.
 
-> Construir ya es gratis. Decidir es el trabajo.
+> Decidir y ser ambicioso es el trabajo.
 
 | Carpeta | Qué es |
 |---|---|
